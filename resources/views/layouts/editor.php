@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/svg+xml" href="<?= BASE_URL ?>/favicon.svg">
   <title><?= htmlspecialchars($title ?? 'Editor') ?> — DocEditor</title>
   <link rel="stylesheet" href="<?= BASE_URL ?>/assets/editor.css">
   <link rel="stylesheet" href="<?= BASE_URL ?>/assets/document.css">

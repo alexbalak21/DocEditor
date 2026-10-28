@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <link rel="icon" type="image/svg+xml" href="<?= BASE_URL ?>/favicon.svg">
   <title><?= htmlspecialchars(($doc['type'] ?? 'DOCUMENT') . ' ' . ($doc['number'] ?? '')) ?></title>
   <link rel="stylesheet" href="<?= BASE_URL ?>/assets/document.css">
   <style>

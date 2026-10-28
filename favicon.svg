@@ -1,31 +1,31 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <!-- White circular background -->
-  <circle cx="256" cy="256" r="240" fill="#FFFFFF"/>
+  <circle cx="256" cy="256" r="248" fill="#FFFFFF"/>
 
-  <!-- Document body -->
+  <!-- Document -->
   <path
-    d="M155 100
-       H290
-       L365 175
-       V390
-       C365 415 345 435 320 435
-       H175
-       C150 435 135 415 135 390
-       V120
-       C135 109 144 100 155 100
+    d="M135 85
+       H295
+       L380 170
+       V385
+       C380 420 352 445 317 445
+       H165
+       C130 445 105 420 105 385
+       V115
+       C105 98 118 85 135 85
        Z"
     fill="#3480E3"/>
 
   <!-- Folded corner -->
   <path
-    d="M290 100
-       L365 175
-       H290
+    d="M295 85
+       L380 170
+       H295
        Z"
     fill="#1565D8"/>
 
   <!-- Text lines -->
-  <rect x="185" y="215" width="120" height="16" rx="2" fill="#FFFFFF"/>
-  <rect x="185" y="265" width="120" height="16" rx="2" fill="#FFFFFF"/>
-  <rect x="185" y="315" width="80" height="16" rx="2" fill="#FFFFFF"/>
+  <rect x="180" y="220" width="135" height="18" rx="2" fill="#FFFFFF"/>
+  <rect x="180" y="285" width="135" height="18" rx="2" fill="#FFFFFF"/>
+  <rect x="180" y="350" width="90" height="18" rx="2" fill="#FFFFFF"/>
 </svg>

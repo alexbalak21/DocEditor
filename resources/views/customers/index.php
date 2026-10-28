@@ -1,4 +1,5 @@
 <style>html,body{height:auto;overflow:auto}</style>
+<?php require ROOT . '/resources/views/partials/bulk_io.php'; ?>
 
 <div class="history-layout">
   <div class="history-topbar">
@@ -148,23 +149,9 @@ document.getElementById('btn-export').addEventListener('click', async () => {
   toast(`Exported ${clean.length} customer(s)`,'success');
 });
 
-// Import
-document.getElementById('btn-import').addEventListener('change', function() {
-  const file = this.files[0]; if (!file) return;
-  const reader = new FileReader();
-  reader.onload = async e => {
-    let saved=0,failed=0;
-    const data = JSON.parse(e.target.result);
-    for (const c of data) {
-      if (!c.name) { failed++; continue; }
-      const json = await fetch(BASE+'/api/customers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(c)}).then(r=>r.json());
-      json.ok ? saved++ : failed++;
-    }
-    toast(failed ? `Imported ${saved}, skipped ${failed}` : `Imported ${saved}`,'success');
-    loadCustomers();
-    this.value='';
-  };
-  reader.readAsText(file);
+// Import (server-side, skips what already exists)
+document.getElementById('btn-import').addEventListener('change', function () {
+  bulkImport(this, {url: BASE+'/api/customers/import', key: 'customers', label: 'customer(s)', batch: 100, done: loadCustomers});
 });
 
 function v(id){const el=document.getElementById(id);return el?el.value.trim():'';}

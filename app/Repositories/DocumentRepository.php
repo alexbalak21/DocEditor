@@ -65,6 +65,42 @@ class DocumentRepository
         return (int) $this->db->lastInsertId();
     }
 
+    /** @return Document[] every document including its data blob, oldest first */
+    public function findAllFull(): array
+    {
+        $rows = $this->db->query('SELECT * FROM documents ORDER BY created_at ASC, id ASC')->fetchAll();
+        return array_map(fn(array $r) => Document::fromRow($r), $rows);
+    }
+
+    /** id of a document with this type + number, or null. */
+    public function findIdByTypeAndNumber(string $type, string $number): ?int
+    {
+        $stmt = $this->db->prepare('SELECT id FROM documents WHERE type = ? AND number = ? LIMIT 1');
+        $stmt->execute([$type, $number]);
+        $id = $stmt->fetchColumn();
+        return $id === false ? null : (int) $id;
+    }
+
+    /** Insert keeping the original created_at / updated_at (used by the bulk import). */
+    public function createWithDates(Document $doc): int
+    {
+        $stmt = $this->db->prepare('
+            INSERT INTO documents (type, number, date, status, customer, data, created_at, updated_at)
+            VALUES (:type, :number, :date, :status, :customer, :data, :created, :updated)
+        ');
+        $stmt->execute([
+            ':type'     => $doc->type,
+            ':number'   => $doc->number,
+            ':date'     => $doc->date,
+            ':status'   => $doc->status,
+            ':customer' => $doc->customer,
+            ':data'     => json_encode($doc->data, JSON_UNESCAPED_UNICODE),
+            ':created'  => $doc->createdAt,
+            ':updated'  => $doc->updatedAt,
+        ]);
+        return (int) $this->db->lastInsertId();
+    }
+
     public function update(int $id, Document $doc): void
     {
         $stmt = $this->db->prepare('

@@ -33,7 +33,7 @@ class DocumentService
             id:       null,
             type:     strtoupper(trim($data['type']              ?? 'INVOICE')),
             number:   trim($data['number']                       ?? ''),
-            date:     trim($data['date']                         ?? date('Y-m-d')),
+            date:     self::validDate($data['date'] ?? null) ?? date('Y-m-d'),
             status:   'draft',
             customer: trim($data['customer']['name']             ?? ''),
             data:     $data,
@@ -49,13 +49,113 @@ class DocumentService
             id:       $id,
             type:     strtoupper(trim($data['type']              ?? 'INVOICE')),
             number:   trim($data['number']                       ?? ''),
-            date:     trim($data['date']                         ?? date('Y-m-d')),
+            date:     self::validDate($data['date'] ?? null) ?? date('Y-m-d'),
             status:   $status,
             customer: trim($data['customer']['name']             ?? ''),
             data:     $data,
         );
         $this->docs->update($id, $doc);
         $this->upsertCustomer($data['customer'] ?? []);
+    }
+
+    private static function validDate(mixed $v): ?string
+    {
+        if (!is_string($v) || !preg_match('/^(\d{4})-(\d{2})-(\d{2})/', trim($v), $m)) return null;
+        return checkdate((int)$m[2], (int)$m[3], (int)$m[1]) ? "$m[1]-$m[2]-$m[3]" : null;
+    }
+
+    private static function validDateTime(mixed $v): ?string
+    {
+        if (!is_string($v) || trim($v) === '') return null;
+        $t = strtotime(trim($v));
+        return $t === false ? null : date('Y-m-d H:i:s', $t);
+    }
+
+    /** Everything, in the file format used by Export / Import. */
+    public function exportAll(): array
+    {
+        $documents = array_map(fn(Document $d) => [
+            'id' => $d->id, 'status' => $d->status,
+            'created_at' => $d->createdAt, 'updated_at' => $d->updatedAt,
+            'data' => $d->data,
+        ], $this->docs->findAllFull());
+
+        return [
+            'format' => 'doceditor-export', 'version' => 1,
+            'exported_at' => date('c'), 'count' => count($documents),
+            'documents' => $documents,
+        ];
+    }
+
+    /**
+     * Bulk import (documents exported from the old version, or from this one).
+     * Each entry is {data, status?, created_at?, updated_at?} or a bare document object.
+     * A document whose type + number already exist is skipped, so re-running is safe.
+     * Customers are added to the customer list only when missing (existing ones are not overwritten).
+     *
+     * @return array{imported:int, skipped:int, failed:int, errors:string[]}
+     */
+    public function importMany(array $entries): array
+    {
+        $res = ['imported' => 0, 'skipped' => 0, 'failed' => 0, 'errors' => []];
+
+        foreach ($entries as $i => $entry) {
+            $label = '#' . ($i + 1);
+            try {
+                if (!is_array($entry)) throw new \InvalidArgumentException('not an object');
+                $data = isset($entry['data']) && is_array($entry['data']) ? $entry['data'] : $entry;
+                if (!isset($data['items']) && !isset($data['customer']) && !isset($data['type'])) {
+                    throw new \InvalidArgumentException('not a document');
+                }
+                $type   = strtoupper(trim((string)($data['type'] ?? 'INVOICE'))) ?: 'INVOICE';
+                $number = trim((string)($data['number'] ?? ''));
+                $label  = $number !== '' ? "$type $number" : $label;
+                $data['type'] = $type;
+
+                // old documents had a single service_date -> new start/end fields
+                if (!empty($data['service_date']) && empty($data['service_date_start'])) {
+                    $data['service_date_start'] = $data['service_date'];
+                }
+                unset($data['service_date']);
+                $data += ['service_date_start' => '', 'service_date_end' => '', 'po_number' => ''];
+
+                if ($number !== '' && $this->docs->findIdByTypeAndNumber($type, $number) !== null) {
+                    $res['skipped']++;
+                    continue;
+                }
+
+                $created = self::validDateTime($entry['created_at'] ?? null) ?? date('Y-m-d H:i:s');
+                $updated = self::validDateTime($entry['updated_at'] ?? null) ?? $created;
+                $status  = in_array($entry['status'] ?? '', ['draft', 'final', 'paid'], true) ? $entry['status'] : 'draft';
+                $date    = self::validDate($data['date'] ?? null) ?? substr($created, 0, 10);
+                $data['date'] = $date;
+                $cust    = is_array($data['customer'] ?? null) ? $data['customer'] : [];
+
+                $this->docs->createWithDates(new Document(
+                    id: null, type: $type, number: $number, date: $date, status: $status,
+                    customer: trim((string)($cust['name'] ?? '')), data: $data,
+                    createdAt: $created, updatedAt: $updated,
+                ));
+                $this->createCustomerIfMissing($cust);
+                $res['imported']++;
+            } catch (\Throwable $e) {
+                $res['failed']++;
+                $res['errors'][] = "$label: " . $e->getMessage();
+            }
+        }
+        return $res;
+    }
+
+    private function createCustomerIfMissing(array $cust): void
+    {
+        $name = trim((string)($cust['name'] ?? ''));
+        if ($name === '' || $this->customers->findByName($name)) return;
+        $this->customers->create(new \App\Models\Customer(
+            id: null, name: $name,
+            address: trim((string)($cust['address'] ?? '')), city: trim((string)($cust['city'] ?? '')),
+            contact: trim((string)($cust['contact'] ?? '')), phone: trim((string)($cust['phone'] ?? '')),
+            vat: trim((string)($cust['vat'] ?? '')),
+        ));
     }
 
     public function delete(int $id): void

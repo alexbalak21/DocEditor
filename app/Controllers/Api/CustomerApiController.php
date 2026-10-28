@@ -49,6 +49,16 @@ class CustomerApiController
         }
     }
 
+    /** POST /api/customers/import  body: {customers: [...]} (or a bare array) */
+    public function import(): void
+    {
+        $body = $this->request->all();
+        $rows = $body['customers'] ?? (array_is_list($body) ? $body : null);
+        if (!is_array($rows) || $rows === []) Response::error('Nothing to import');
+        if (count($rows) > 500) Response::error('Too many rows in one request (max 500)');
+        Response::ok($this->service->importMany(array_values($rows)));
+    }
+
     public function destroy(array $params): void
     {
         $this->service->delete((int)$params['id']);

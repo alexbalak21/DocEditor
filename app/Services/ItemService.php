@@ -47,6 +47,30 @@ class ItemService
         ));
     }
 
+    /**
+     * Bulk import: items whose reference already exists are skipped.
+     * @return array{imported:int, skipped:int, failed:int, errors:string[]}
+     */
+    public function importMany(array $rows): array
+    {
+        $res = ['imported' => 0, 'skipped' => 0, 'failed' => 0, 'errors' => []];
+        foreach ($rows as $i => $row) {
+            $ref = is_array($row) ? trim((string)($row['reference'] ?? '')) : '';
+            try {
+                if (!is_array($row)) throw new \InvalidArgumentException('not an object');
+                if ($this->repo->existsByReference($ref)) { $res['skipped']++; continue; }
+                $row['price'] = is_numeric($row['price'] ?? null) ? (string)$row['price'] : '0';
+                foreach (['title', 'unit', 'description'] as $k) $row[$k] = (string)($row[$k] ?? '');
+                $this->create($row);
+                $res['imported']++;
+            } catch (\Throwable $e) {
+                $res['failed']++;
+                $res['errors'][] = ($ref !== '' ? $ref : '#' . ($i + 1)) . ': ' . $e->getMessage();
+            }
+        }
+        return $res;
+    }
+
     public function delete(int $id): void
     {
         $this->repo->delete($id);

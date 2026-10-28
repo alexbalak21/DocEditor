@@ -53,6 +53,28 @@ class CustomerService
         ));
     }
 
+    /**
+     * Bulk import: customers whose name already exists (case-insensitive) are skipped.
+     * @return array{imported:int, skipped:int, failed:int, errors:string[]}
+     */
+    public function importMany(array $rows): array
+    {
+        $res = ['imported' => 0, 'skipped' => 0, 'failed' => 0, 'errors' => []];
+        foreach ($rows as $i => $row) {
+            $name = is_array($row) ? trim((string)($row['name'] ?? '')) : '';
+            try {
+                if ($name === '') throw new \InvalidArgumentException('name is required');
+                if ($this->repo->findByName($name)) { $res['skipped']++; continue; }
+                $this->create($row);
+                $res['imported']++;
+            } catch (\Throwable $e) {
+                $res['failed']++;
+                $res['errors'][] = ($name !== '' ? $name : '#' . ($i + 1)) . ': ' . $e->getMessage();
+            }
+        }
+        return $res;
+    }
+
     public function delete(int $id): void
     {
         $this->repo->delete($id);

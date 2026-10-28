@@ -43,6 +43,8 @@ $router->get('/api/documents',                [DocumentApiController::class, 'in
 $router->get('/api/documents/default',        [DocumentApiController::class, 'default']);
 $router->get('/api/numbers/next',             [DocumentApiController::class, 'nextNumber']);
 $router->get('/api/numbers/peek',             [DocumentApiController::class, 'peekNumber']);
+$router->get('/api/documents/export',         [DocumentApiController::class, 'export']);
+$router->post('/api/documents/import',        [DocumentApiController::class, 'import']);
 $router->get('/api/documents/:id',            [DocumentApiController::class, 'show']);
 $router->post('/api/documents',               [DocumentApiController::class, 'store']);
 $router->post('/api/documents/:id',           [DocumentApiController::class, 'update']);
@@ -51,6 +53,7 @@ $router->post('/api/documents/:id/duplicate', [DocumentApiController::class, 'du
 
 // Customers
 $router->get('/api/customers',              [CustomerApiController::class, 'index']);
+$router->post('/api/customers/import',      [CustomerApiController::class, 'import']);
 $router->get('/api/customers/:id',          [CustomerApiController::class, 'show']);
 $router->post('/api/customers',             [CustomerApiController::class, 'store']);
 $router->post('/api/customers/:id',         [CustomerApiController::class, 'update']);
@@ -58,6 +61,7 @@ $router->post('/api/customers/:id/delete',  [CustomerApiController::class, 'dest
 
 // Items
 $router->get('/api/items',                  [ItemApiController::class, 'index']);
+$router->post('/api/items/import',          [ItemApiController::class, 'import']);
 $router->get('/api/items/:id',              [ItemApiController::class, 'show']);
 $router->post('/api/items',                 [ItemApiController::class, 'store']);
 $router->post('/api/items/:id',             [ItemApiController::class, 'update']);

@@ -54,6 +54,21 @@ class DocumentApiController
         Response::ok(['id' => (int)$params['id']]);
     }
 
+    /** GET /api/documents/export — every document, full data, oldest first */
+    public function export(): void
+    {
+        Response::ok($this->service->exportAll());
+    }
+
+    /** POST /api/documents/import  body: {documents: [...]} */
+    public function import(): void
+    {
+        $docs = $this->request->input('documents');
+        if (!is_array($docs) || $docs === []) Response::error('No documents provided');
+        if (count($docs) > 200) Response::error('Too many documents in one request (max 200)');
+        Response::ok($this->service->importMany(array_values($docs)));
+    }
+
     public function destroy(array $params): void
     {
         $this->service->delete((int)$params['id']);

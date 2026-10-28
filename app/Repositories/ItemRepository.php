@@ -57,6 +57,13 @@ class ItemRepository
         return (int) $this->db->lastInsertId();
     }
 
+    public function existsByReference(string $reference): bool
+    {
+        $stmt = $this->db->prepare('SELECT 1 FROM items WHERE reference = ? COLLATE utf8mb4_general_ci LIMIT 1');
+        $stmt->execute([$reference]);
+        return (bool) $stmt->fetchColumn();
+    }
+
     public function update(int $id, Item $item): void
     {
         $stmt = $this->db->prepare('

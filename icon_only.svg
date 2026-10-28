@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Document body -->
+  <path
+    d="M128 64
+       H296
+       L384 152
+       V400
+       C384 426 362 448 336 448
+       H160
+       C134 448 112 426 112 400
+       V96
+       C112 78 126 64 144 64
+       Z"
+    fill="#3480E3"/>
+
+  <!-- Folded corner -->
+  <path
+    d="M296 64
+       L384 152
+       H296
+       Z"
+    fill="#1565D8"/>
+
+  <!-- Text lines -->
+  <rect x="180" y="200" width="140" height="18" fill="#FFFFFF"/>
+  <rect x="180" y="260" width="140" height="18" fill="#FFFFFF"/>
+  <rect x="180" y="320" width="90" height="18" fill="#FFFFFF"/>
+</svg>

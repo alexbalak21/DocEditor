@@ -268,6 +268,25 @@ POST (forms and `fetch()`); login throttling (5 failed attempts per email+IP or 
 generic "Invalid email or password" message with constant-time-style checks; open-redirect-safe `next=`; idle timeout
 (`SESSION_LIFETIME`, default 120 min); security headers (X-Frame-Options, nosniff, Referrer-Policy, HSTS on HTTPS).
 
+### Staying signed in (remember-me devices)
+
+The sign-in page has **“Keep me signed in on this device”** (ticked by default). A remembered browser is signed back in
+silently whenever its PHP session is gone (browser restarted, idle timeout, laptop asleep), so people who use the app
+**never have to type their password again**, and the secret that does this is replaced all the time.
+
+| Mechanism | What it does |
+|---|---|
+| **Cookie = `selector.validator`** | Two random values. Only `sha256(validator)` is stored in `auth_devices`, so a database leak signs nobody in. HttpOnly, SameSite=Lax, Secure on HTTPS. |
+| **Rotation** | The validator is replaced every time the cookie restores a session, and at least every `REMEMBER_ROTATE_MINUTES` while a page is open (keep-alive ping every 4 min + when the tab wakes up). |
+| **Theft detection** | A validator that was already replaced and is used again after a 60 s grace period (two tabs racing) means the cookie was copied → that device is revoked immediately; the thief **and** the owner must sign in again. |
+| **Fingerprint** | Browser family + OS recorded at sign-in must match on every use (versions ignored, so browser updates are fine). The IP is stored and shown in the device list; it is only *enforced* with `REMEMBER_BIND_IP=true` (same /24 or /48), because people legitimately move between Wi-Fi and 4G. |
+| **Sliding expiry** | Every use pushes the expiry `REMEMBER_DAYS` (default 180) ahead. `REMEMBER_MAX_DAYS` adds an absolute lifetime if you want one (0 = none). |
+| **Revocation** | `/profile` lists every remembered device (browser, OS, IP, last active) with **Sign out** buttons and **Sign out all other devices**. A revoked device's live session ends within 30 s. Changing the password signs out all other devices. Logging out removes this browser's device. |
+
+Limits worth knowing: a cookie stolen from a browser together with its User-Agent (malware on the machine) can't be told
+apart from the owner until the owner's next refresh trips the theft check; no e-mail alert is sent on a new device (the app has
+no mail setup); a phone switching to “Request desktop site” changes the OS in its User-Agent and will have to sign in again.
+
 > All users share the same data (documents, customers, items) — accounts are not separate workspaces.
 
 ### Creating users
@@ -288,7 +307,7 @@ Run it again with an existing email to **reset that user's password**.
 3. Create **`.env`** on the server (copy `.env.example`) and fill in the DB credentials.
    Keep `APP_ENV=production` and **`APP_DEBUG=false`** — debug mode prints error details in the browser.
 4. **Create the tables:** `php database/migrate.php` (SSH) *or* import
-   `database/migrations/001_create_tables.sql` then `003_auth.sql` in phpMyAdmin (Import tab, with your database selected).
+   `database/migrations/001_create_tables.sql`, `003_auth.sql` then `004_auth_devices.sql` in phpMyAdmin (Import tab, with your database selected).
 5. **Create your user:** `php database/create_user.php` (SSH) *or* run `php database/create_user.php --sql` on your computer
    and paste the generated `INSERT` into phpMyAdmin's SQL tab.
 6. Make sure **`storage/sessions/`** is writable by the web server (if it isn't, PHP's default session folder is used).

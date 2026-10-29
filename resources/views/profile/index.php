@@ -68,5 +68,40 @@ $email = $old['email'] ?? $user->email;
     <p class="profile-meta">Changing your password signs you out on every other device.</p>
   </form>
 
+  <div class="item-form-card" id="devices">
+    <h2><i class="fa-solid fa-laptop"></i> Devices that stay signed in</h2>
+    <?php if (!$devices): ?>
+      <p class="profile-meta" style="margin:0">None. Tick “Keep me signed in on this device” on the sign-in page to add this browser.</p>
+    <?php else: ?>
+      <table class="doc-table" style="margin-bottom:14px">
+        <thead><tr><th>Device</th><th>Last IP</th><th>Last active</th><th>Signed in</th><th></th></tr></thead>
+        <tbody>
+        <?php foreach ($devices as $d): ?>
+          <tr>
+            <td style="font-weight:600"><?= e($d['label']) ?>
+              <?php if ($d['current']): ?> <span class="badge badge-paid">This device</span><?php endif; ?></td>
+            <td><?= e($d['ip']) ?><?php if ($d['ip'] !== $d['ip_first']): ?><div class="profile-meta" style="margin:0">first: <?= e($d['ip_first']) ?></div><?php endif; ?></td>
+            <td style="font-size:12px"><?= e(substr($d['last_used'], 0, 16)) ?></td>
+            <td style="font-size:12px"><?= e(substr($d['signed_in'], 0, 16)) ?></td>
+            <td style="text-align:right">
+              <?php if (!$d['current']): ?>
+              <form method="post" action="<?= BASE_URL ?>/profile/devices/<?= (int) $d['id'] ?>/revoke" style="display:inline">
+                <?= Csrf::field() ?>
+                <button type="submit" class="btn btn-danger btn-sm">Sign out</button>
+              </form>
+              <?php endif; ?>
+            </td>
+          </tr>
+        <?php endforeach; ?>
+        </tbody>
+      </table>
+    <?php endif; ?>
+    <form method="post" action="<?= BASE_URL ?>/profile/devices/revoke-others" onsubmit="return confirm('Sign out every other device?')">
+      <?= Csrf::field() ?>
+      <button type="submit" class="btn btn-ghost btn-sm" style="background:#eee;color:#1a1d23;border:none"><i class="fa-solid fa-right-from-bracket"></i> Sign out all other devices</button>
+    </form>
+    <p class="profile-meta">A device stays signed in until you sign it out or it has not been used for <?= \App\Services\RememberService::days() ?> days. Its secret key is replaced regularly, and a copied cookie used from another browser or OS is rejected.</p>
+  </div>
+
   <p class="profile-meta">Last sign-in: <?= e($user->lastLoginAt ?? '—') ?></p>
 </div>

@@ -59,6 +59,15 @@ class UserRepository
                  ->execute([$hash, $id]);
     }
 
+    /** Invalidate every session of this user (they all carry the old auth_version). Returns the new version. */
+    public function bumpAuthVersion(int $id): int
+    {
+        $this->db->prepare('UPDATE users SET auth_version = auth_version + 1 WHERE id = ?')->execute([$id]);
+        $stmt = $this->db->prepare('SELECT auth_version FROM users WHERE id = ?');
+        $stmt->execute([$id]);
+        return (int) $stmt->fetchColumn();
+    }
+
     /** Transparent re-hash (password_needs_rehash) — does NOT end other sessions. */
     public function rehashPassword(int $id, string $hash): void
     {

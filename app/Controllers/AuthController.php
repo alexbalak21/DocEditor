@@ -8,6 +8,7 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Core\Session;
 use App\Services\AuthService;
+use App\Services\RememberService;
 
 class AuthController
 {
@@ -39,7 +40,7 @@ class AuthController
             Response::redirectTo(BASE_URL . '/login' . ($next ? '?next=' . rawurlencode($next) : ''));
         }
 
-        Auth::login($result['user']);
+        Auth::login($result['user'], (string) $request->input('remember', '') !== '');
         Response::redirectTo($next ?? BASE_URL . '/documents');
     }
 
@@ -47,6 +48,17 @@ class AuthController
     {
         Auth::logout();
         Response::redirect('/login');
+    }
+
+    /**
+     * Keep-alive, called every few minutes by the page (and when the tab wakes up).
+     * Going through the router's guard already restored a lost session from the remember-me cookie;
+     * here the cookie's validator is refreshed when due, and the page gets a current CSRF token.
+     */
+    public function ping(): void
+    {
+        (new RememberService())->rotateIfDue(Auth::deviceId());
+        Response::ok(['token' => Csrf::token()]);
     }
 
     /** Fresh CSRF token for the current session (used by the JS fetch wrapper after a 419). */

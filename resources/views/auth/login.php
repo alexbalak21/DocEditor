@@ -29,6 +29,11 @@
       <input id="password" type="password" name="password" required autocomplete="current-password">
     </div>
 
+    <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#5a6070;margin:2px 0 14px;cursor:pointer">
+      <input type="checkbox" name="remember" value="1" checked style="width:15px;height:15px">
+      Keep me signed in on this device
+    </label>
+
     <button type="submit" class="btn btn-primary auth-submit">
       <i class="fa-solid fa-right-to-bracket"></i> Sign in
     </button>

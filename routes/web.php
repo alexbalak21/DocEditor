@@ -19,8 +19,11 @@ $router->post('/logout', [AuthController::class, 'logout'],    ['public' => true
 $router->get('/profile',           [ProfileController::class, 'show']);
 $router->post('/profile',          [ProfileController::class, 'update']);
 $router->post('/profile/password', [ProfileController::class, 'password']);
+$router->post('/profile/devices/revoke-others', [ProfileController::class, 'revokeOthers']);
+$router->post('/profile/devices/:id/revoke',    [ProfileController::class, 'revokeDevice']);
 
 $router->get('/api/csrf', [AuthController::class, 'csrf']);
+$router->get('/api/session/ping', [AuthController::class, 'ping']);
 
 /**
  * Web routes — HTML pages

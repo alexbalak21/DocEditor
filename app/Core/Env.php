@@ -44,6 +44,9 @@ class Env
 
     public static function get(string $key, mixed $default = null): mixed
     {
-        return $_ENV[$key] ?? getenv($key) ?: $default;
+        // Note: a value of "0" is a real value (the old `?:` version treated it as "unset")
+        if (isset($_ENV[$key]) && $_ENV[$key] !== '') return $_ENV[$key];
+        $v = getenv($key);
+        return ($v !== false && $v !== '') ? $v : $default;
     }
 }

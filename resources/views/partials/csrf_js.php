@@ -24,6 +24,33 @@ const BASE = <?= json_encode(BASE_URL) ?>;
     document.body.appendChild(b);
   }
 
+  // ── Keep-alive: renews the session (and the device key) in the background ──────────────────
+  // Every 4 minutes while the tab is visible, and as soon as the tab wakes up (laptop opened,
+  // tab focused, network back). If the PHP session was lost, the server restores it from the
+  // remember-me cookie and hands back a fresh CSRF token, so nothing visible happens.
+  let lastPing = Date.now(), pinging = false;
+  async function ping() {
+    if (pinging) return;
+    pinging = true;
+    try {
+      const r = await nativeFetch(BASE + '/api/session/ping', { credentials: 'same-origin', cache: 'no-store' });
+      if (r.status === 401) { showSessionBanner(); return; }
+      if (r.ok) {
+        const token = (await r.json()).token;
+        meta.content = token;
+        document.querySelectorAll('input[name="_token"]').forEach(i => { i.value = token; });
+        const b = document.getElementById('session-banner'); if (b) b.remove();
+        lastPing = Date.now();
+      }
+    } catch (e) { /* offline: try again on the next tick */ }
+    finally { pinging = false; }
+  }
+  setInterval(() => { if (!document.hidden) ping(); }, 4 * 60 * 1000);
+  const wake = () => { if (!document.hidden && Date.now() - lastPing > 60 * 1000) ping(); };
+  document.addEventListener('visibilitychange', wake);
+  window.addEventListener('focus', wake);
+  window.addEventListener('online', wake);
+
   window.fetch = async function (input, init) {
     init = init || {};
     const method = (init.method || (input && input.method) || 'GET').toUpperCase();

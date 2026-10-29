@@ -3,5 +3,6 @@
 vendor/
 *.sqlite
 *.log
+*.zip
 storage/sessions/*
 !storage/sessions/.gitkeep

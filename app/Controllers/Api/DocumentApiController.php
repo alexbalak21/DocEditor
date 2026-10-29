@@ -22,6 +22,9 @@ class DocumentApiController
         $docs = $this->service->list(
             search: $this->request->query('q', ''),
             type:   $this->request->query('type', ''),
+            status: (string) $this->request->query('status', ''),
+            from:   (string) $this->request->query('from', ''),
+            to:     (string) $this->request->query('to', ''),
         );
         Response::ok(['documents' => $docs]);
     }

@@ -22,8 +22,10 @@ class ItemRepository
         $params = [];
 
         if ($search !== '') {
-            $sql .= ' AND (reference LIKE :q OR title LIKE :q OR description LIKE :q)';
-            $params[':q'] = "%$search%";
+            $sql .= ' AND (reference LIKE :q1 OR title LIKE :q2 OR description LIKE :q3)';
+            $params[':q1'] = "%$search%";
+            $params[':q2'] = "%$search%";
+            $params[':q3'] = "%$search%";
         }
         $sql .= ' ORDER BY title ASC';
 

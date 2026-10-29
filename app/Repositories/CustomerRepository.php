@@ -22,8 +22,10 @@ class CustomerRepository
         $params = [];
 
         if ($search !== '') {
-            $sql .= ' AND (name LIKE :q OR city LIKE :q OR contact LIKE :q)';
-            $params[':q'] = "%$search%";
+            $sql .= ' AND (name LIKE :q1 OR city LIKE :q2 OR contact LIKE :q3)';
+            $params[':q1'] = "%$search%";
+            $params[':q2'] = "%$search%";
+            $params[':q3'] = "%$search%";
         }
         $sql .= ' ORDER BY name ASC';
 

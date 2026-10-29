@@ -14,11 +14,11 @@ class DocumentService
         private CustomerRepository $customers = new CustomerRepository(),
     ) {}
 
-    public function list(string $search = '', string $type = ''): array
+    public function list(string $search = '', string $type = '', string $status = '', string $from = '', string $to = ''): array
     {
         return array_map(
             fn(Document $d) => $d->toSummary(),
-            $this->docs->findAll($search, $type)
+            $this->docs->findAll($search, $type, $status, $from, $to)
         );
     }
 

@@ -16,20 +16,34 @@ class DocumentRepository
     }
 
     /** @return Document[] */
-    public function findAll(string $search = '', string $type = ''): array
+    public function findAll(string $search = '', string $type = '', string $status = '', string $from = '', string $to = ''): array
     {
         $sql    = 'SELECT id, type, number, date, status, customer, created_at, updated_at FROM documents WHERE 1=1';
         $params = [];
 
         if ($search !== '') {
-            $sql .= ' AND (number LIKE :q OR customer LIKE :q)';
-            $params[':q'] = "%$search%";
+            $sql .= ' AND (number LIKE :q1 OR customer LIKE :q2)';
+            $params[':q1'] = "%$search%";
+            $params[':q2'] = "%$search%";
         }
         if ($type !== '') {
             $sql .= ' AND type = :type';
             $params[':type'] = $type;
         }
-        $sql .= ' ORDER BY updated_at DESC';
+        if (in_array($status, ['draft', 'final', 'paid'], true)) {
+            $sql .= ' AND status = :status';
+            $params[':status'] = $status;
+        }
+        // document date range, inclusive, ISO yyyy-mm-dd (anything else is ignored)
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $from)) {
+            $sql .= ' AND date >= :from';
+            $params[':from'] = $from;
+        }
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $to)) {
+            $sql .= ' AND date <= :to';
+            $params[':to'] = $to;
+        }
+        $sql .= ' ORDER BY date DESC, updated_at DESC';
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);

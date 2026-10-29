@@ -240,17 +240,15 @@ class DocumentService
         $dateKey = date('Ymd');
         $db      = Database::getInstance();
 
+        // Atomic increment: LAST_INSERT_ID(expr) hands back this connection's own new counter value,
+        // so two simultaneous requests can never receive the same number.
         $db->prepare('
             INSERT INTO document_numbers (prefix, date_key, counter)
-            VALUES (?, ?, 1)
-            ON DUPLICATE KEY UPDATE counter = counter + 1
+            VALUES (?, ?, LAST_INSERT_ID(1))
+            ON DUPLICATE KEY UPDATE counter = LAST_INSERT_ID(counter + 1)
         ')->execute([$prefix, $dateKey]);
 
-        $counter = (int) $db->prepare('
-            SELECT counter FROM document_numbers WHERE prefix = ? AND date_key = ?
-        ')->execute([$prefix, $dateKey]) ? $db->query(
-            "SELECT counter FROM document_numbers WHERE prefix='$prefix' AND date_key='$dateKey'"
-        )->fetchColumn() : 1;
+        $counter = (int) $db->query('SELECT LAST_INSERT_ID()')->fetchColumn();
 
         return ['number' => "$prefix-$dateKey-$counter", 'prefix' => $prefix, 'counter' => $counter];
     }

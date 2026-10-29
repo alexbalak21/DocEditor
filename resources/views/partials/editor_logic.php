@@ -172,7 +172,7 @@ function renderPreview(d) {
       <td class="qty center">${esc(String(it.qty??''))}</td><td class="amount right">${am}</td></tr>`;
   }).join('')||'<tr><td colspan="5" style="color:#aaa;text-align:center;padding:14px">No items yet</td></tr>';
   let totalRows=`<tr><td>Subtotal (excl. VAT)</td><td class="right">${sym} ${fmt(subtotal)}</td></tr>
-    <tr><td>VAT${vatRate>0?` (${vatRate}%)`:''}}</td><td class="right">${sym} ${fmt(vatAmt)}</td></tr>`;
+    <tr><td>VAT${vatRate>0?` (${vatRate}%)`:''}</td><td class="right">${sym} ${fmt(vatAmt)}</td></tr>`;
   if(d.show_amount_paid&&amtPaid>0) totalRows+=`<tr><td>Amount Paid</td><td class="right">${sym} ${fmt(amtPaid)}</td></tr>`;
   totalRows+=`<tr class="grand-total"><td>${esc(d.balance_label||'TOTAL DUE')} (${esc(d.currency||'EUR')})</td><td class="right">${sym} ${fmt(balance)}</td></tr>`;
   const cu=d.customer||{}, iss=d.issuer||{}, bank=d.bank||{};
@@ -412,9 +412,29 @@ function unwrapModelJson(obj) {
   return obj;
 }
 
+// ── Generate next document number ─────────────────────────────
+wire('btn-gen-number', 'click', async function () {
+  const btn  = this;
+  const type = v('f-type') || 'INVOICE';
+  btn.disabled = true;
+  try {
+    const res  = await fetch(API.nextNumber(type), { cache: 'no-store' });
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.error || 'Request failed');
+    set('f-number', json.number);
+    onFormChange();
+    toast('Generated ' + json.number, 'success');
+  } catch (e) {
+    toast('Failed to generate number: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
 // ── Customer picker ───────────────────────────────────────────
 let custTimer=null;
-wire('btn-pick-customer', 'click',()=>{
+wire('btn-pick-customer', 'click',(e)=>{
+  e.stopPropagation();   // button lives in the collapsible header
   document.getElementById('customer-modal').style.display='flex';
   const inp=document.getElementById('customer-search'); inp.value=''; inp.focus(); searchCustomers('');
 });
@@ -424,7 +444,8 @@ function searchCustomers(q){
   custTimer=setTimeout(async()=>{
     const list=document.getElementById('customer-modal-list');
     list.innerHTML='<div class="cust-empty">Searching…</div>';
-    const json=await fetch(API.customers(q)).then(r=>r.json());
+    let json;
+    try{json=await fetch(API.customers(q)).then(r=>r.json());}catch(e){json={ok:false,error:e.message};}
     if(!json.ok){list.innerHTML=`<div class="cust-empty">Error: ${esc(json.error)}</div>`;return;}
     const items=json.customers;
     if(!items.length){list.innerHTML='<div class="cust-empty">No customers found.</div>';return;}
@@ -456,12 +477,13 @@ function searchItems(q){
   itemTimer=setTimeout(async()=>{
     const list=document.getElementById('item-modal-list');
     list.innerHTML='<div class="cust-empty">Searching…</div>';
-    const json=await fetch(API.items(q)).then(r=>r.json());
+    let json;
+    try{json=await fetch(API.items(q)).then(r=>r.json());}catch(e){json={ok:false,error:e.message};}
     if(!json.ok){list.innerHTML=`<div class="cust-empty">Error: ${esc(json.error)}</div>`;return;}
     const items=json.items;
     if(!items.length){list.innerHTML='<div class="cust-empty">No items found. <a href="'+BASE+'/items" target="_blank">Add some →</a></div>';return;}
     list.innerHTML=items.map(it=>{
-      const price=it.price?'€ '+parseFloat(it.price).toLocaleString('fr-FR',{minimumFractionDigits:2}):'';
+      const price=it.price!==''&&!isNaN(parseFloat(it.price))?(v('f-currency-symbol')||'€')+' '+parseFloat(it.price).toLocaleString('fr-FR',{minimumFractionDigits:2}):'';
       const detail=[it.reference,it.unit,price].filter(Boolean).join(' · ');
       return`<div class="cust-row" onclick="selectItem(${it.id})">
         <div class="cust-row-name">${esc(it.title)}</div>

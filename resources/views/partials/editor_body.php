@@ -26,7 +26,12 @@
               <option value="CREDIT NOTE">Credit Note</option><option value="OTHER">Other</option>
             </select></div>
           <div class="field-row col2">
-            <div class="field"><label>Number</label><input id="f-number" type="text" placeholder="INV-20261006-1"></div>
+            <div class="field"><label>Number</label>
+              <div class="input-with-btn">
+                <input id="f-number" type="text" placeholder="INV-20261006-1">
+                <button type="button" id="btn-gen-number" title="Generate next document number"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
+              </div>
+            </div>
             <div class="field"><label>Date</label><input id="f-date" type="date"></div>
           </div>
           <div class="field-row col2">
@@ -50,7 +55,13 @@
       </div>
 
       <div class="form-section">
-        <div class="form-section-header open" data-section="customer">Bill To <span class="chevron">▼</span></div>
+        <div class="form-section-header open" data-section="customer">
+          <span>Bill To</span>
+          <span style="display:flex;align-items:center;gap:10px;margin-left:auto">
+            <button type="button" id="btn-pick-customer" class="btn-pick-customer" title="Search existing customers"><i class="fa-solid fa-address-book"></i> Pick customer</button>
+            <span class="chevron">▼</span>
+          </span>
+        </div>
         <div class="form-section-body open" id="sec-customer">
           <div class="field"><label>Company / Customer Name</label><input id="f-cust-name" type="text" placeholder="Pureture"></div>
           <div class="field"><label>Address</label><input id="f-cust-addr" type="text"></div>
@@ -60,9 +71,6 @@
             <div class="field"><label>Phone</label><input id="f-cust-phone" type="text"></div>
           </div>
           <div class="field"><label>VAT Number</label><input id="f-cust-vat" type="text"></div>
-          <button class="btn btn-ghost btn-sm" id="btn-pick-customer" style="margin-top:4px">
-            <i class="fa-solid fa-users"></i> Pick customer
-          </button>
         </div>
       </div>
 
@@ -74,7 +82,7 @@
             <tbody id="items-tbody"></tbody>
           </table>
           <button class="btn btn-primary btn-sm btn-add-row" id="btn-add-item"><i class="fa-solid fa-plus"></i> Add line</button>
-          <button class="btn btn-ghost btn-sm btn-add-row" id="btn-pick-item" style="margin-left:6px"><i class="fa-solid fa-boxes-stacked"></i> Pick item</button>
+          <button class="btn btn-secondary btn-sm btn-add-row" id="btn-pick-item" style="margin-left:6px" title="Add a line from your saved items"><i class="fa-solid fa-boxes-stacked"></i> Pick item</button>
         </div>
       </div>
 
@@ -195,6 +203,7 @@ const API = {
   docSave:      ()       => `${BASE}/api/documents`,
   docUpdate:    (id)     => `${BASE}/api/documents/${id}`,
   docDefault:   (type)   => `${BASE}/api/documents/default?type=${encodeURIComponent(type)}`,
+  nextNumber:   (type)   => `${BASE}/api/numbers/next?type=${encodeURIComponent(type)}`,
   customers:    (q)      => `${BASE}/api/customers?q=${encodeURIComponent(q)}`,
   customerGet:  (id)     => `${BASE}/api/customers/${id}`,
   items:        (q)      => `${BASE}/api/items?q=${encodeURIComponent(q)}`,

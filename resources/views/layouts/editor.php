@@ -33,6 +33,9 @@
   </nav>
 
   <div class="topbar-actions" style="margin-left:auto">
+    <button class="btn btn-ghost btn-sm" id="btn-convert" style="display:none" title="Create an invoice from this quote (customer, items and PO are copied)">
+      <i class="fa-solid fa-file-invoice-dollar"></i> Convert to Invoice
+    </button>
     <button class="btn btn-ghost btn-sm" id="btn-model" title="Download annotated JSON template for AI">
       <i class="fa-solid fa-cube"></i> Model JSON
     </button>

@@ -53,6 +53,7 @@ $router->post('/api/documents',               [DocumentApiController::class, 'st
 $router->post('/api/documents/:id',           [DocumentApiController::class, 'update']);
 $router->post('/api/documents/:id/delete',    [DocumentApiController::class, 'destroy']);
 $router->post('/api/documents/:id/duplicate', [DocumentApiController::class, 'duplicate']);
+$router->post('/api/documents/:id/convert',   [DocumentApiController::class, 'convert']);
 
 // Customers
 $router->get('/api/customers',              [CustomerApiController::class, 'index']);

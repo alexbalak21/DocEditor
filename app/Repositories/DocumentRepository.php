@@ -95,6 +95,18 @@ class DocumentRepository
         return $id === false ? null : (int) $id;
     }
 
+    /** Numbers of the invoices whose "quote_ref" points at this quote number. */
+    public function findInvoiceNumbersByQuoteRef(string $quoteNumber): array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT number FROM documents
+             WHERE type = 'INVOICE' AND JSON_UNQUOTE(JSON_EXTRACT(data, '\$.quote_ref')) = ?
+             ORDER BY id"
+        );
+        $stmt->execute([$quoteNumber]);
+        return array_map('strval', $stmt->fetchAll(\PDO::FETCH_COLUMN));
+    }
+
     /** Insert keeping the original created_at / updated_at (used by the bulk import). */
     public function createWithDates(Document $doc): int
     {

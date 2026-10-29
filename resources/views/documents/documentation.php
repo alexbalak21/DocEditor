@@ -213,6 +213,7 @@ html, body { height: auto; overflow: auto; background: #f0f2f5; }
           <tr><td><span class="act">Edit</span></td><td>Opens the document in the editor.</td></tr>
           <tr><td><span class="act">Print</span></td><td>Opens the clean A4 view in a new tab. Use <kbd>Ctrl</kbd>+<kbd>P</kbd> → <em>Save as PDF</em>.</td></tr>
           <tr><td><span class="act">Copy</span></td><td>Duplicates the document as a draft; its number gets <em>-COPY</em> appended.</td></tr>
+          <tr><td><span class="act">→ Invoice</span></td><td>Quotes only. Creates a new draft invoice from the quote: customer, items, VAT and <em>PO number</em> are copied, it gets the next invoice number and today's date, and <em>Quote Ref.</em> points back to the quote. The quote is not changed. The same <em>Convert to Invoice</em> button is in the editor top bar.</td></tr>
           <tr><td><span class="act danger">Del</span></td><td>Asks for confirmation, then deletes it permanently.</td></tr>
           <tr><td><span class="act">⬇ Export</span> <span class="act">⬆ Import</span></td><td>Back up or move every document as one JSON file — see <a href="#json-bulk">Backup &amp; migration</a>.</td></tr>
         </tbody>

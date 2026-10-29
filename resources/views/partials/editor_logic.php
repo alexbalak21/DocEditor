@@ -216,6 +216,8 @@ function onFormChange() {
 }
 
 function updateTopBar(d) {
+  const cv=document.getElementById('btn-convert');
+  if(cv)cv.style.display=String(d.type||'').toUpperCase()==='QUOTE'?'':'none';
   const badge=document.getElementById('topbar-type-badge');
   if(badge){badge.textContent=d.type||'INVOICE';badge.className='topbar-doc-type';}
   const numEl=document.getElementById('topbar-docnum-center');
@@ -254,6 +256,23 @@ function wire(id, evt, fn) {
 }
 
 wire('btn-save',  'click', async () => { isDirty=true; await saveDocument(true); toast('Document saved','success'); });
+// ── Convert quote → invoice ───────────────────────────────────
+async function convertQuote(force=false){
+  const btn=document.getElementById('btn-convert'); btn.disabled=true;
+  try{
+    isDirty=true; await saveDocument(true);            // make sure the latest quote edits are what gets copied
+    if(!currentId)throw new Error('Save the quote first');
+    const json=await fetch(`${BASE}/api/documents/${currentId}/convert`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({force})}).then(r=>r.json());
+    if(json.code==='already_converted'){
+      if(confirm(`This quote was already converted (${json.invoices.join(', ')}).\n\nCreate another invoice anyway?`)){btn.disabled=false;return convertQuote(true);}
+      btn.disabled=false;return;
+    }
+    if(!json.ok)throw new Error(json.error||'Conversion failed');
+    toast('Invoice '+json.number+' created','success');
+    setTimeout(()=>{window.location.href=`${BASE}/editor?id=${json.id}`;},500);
+  }catch(e){toast('Convert failed: '+e.message,'error');btn.disabled=false;}
+}
+wire('btn-convert','click',()=>convertQuote(false));
 wire('btn-print', 'click', async () => {
   if(isDirty){isDirty=true;await saveDocument(true);}
   if(!currentId){toast('Please save first','error');return;}

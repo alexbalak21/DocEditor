@@ -84,6 +84,26 @@ class DocumentApiController
         Response::ok(['id' => $newId]);
     }
 
+    /** POST /api/documents/:id/convert  body: {force?: bool} — quote → new draft invoice */
+    public function convert(array $params): void
+    {
+        try {
+            $res = $this->service->convertQuoteToInvoice((int)$params['id'], (bool)$this->request->input('force', false));
+            Response::ok($res);
+        } catch (\InvalidArgumentException $e) {
+            Response::error($e->getMessage());
+        } catch (\RuntimeException $e) {
+            if (str_starts_with($e->getMessage(), 'already_converted:')) {
+                Response::json([
+                    'ok' => false, 'code' => 'already_converted',
+                    'error' => 'This quote was already converted',
+                    'invoices' => explode(',', substr($e->getMessage(), strlen('already_converted:'))),
+                ], 409);
+            }
+            throw $e;
+        }
+    }
+
     public function default(): void
     {
         $type = strtoupper($this->request->query('type', 'INVOICE'));

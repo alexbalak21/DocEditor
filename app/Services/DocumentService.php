@@ -168,6 +168,47 @@ class DocumentService
         return $this->docs->duplicate($id);
     }
 
+    /**
+     * Turn a quote into a new draft invoice (the quote itself is left untouched).
+     * Customer, items, VAT, currency, notes, bank details and the PO number are carried over;
+     * the invoice gets its own number and today's date, and quote_ref points back to the quote.
+     * If an invoice already references this quote and $force is false, nothing is created and
+     * a RuntimeException('already_converted:INV-1,INV-2') is thrown so the UI can ask first.
+     *
+     * @return array{id:int, number:string}
+     */
+    public function convertQuoteToInvoice(int $id, bool $force = false): array
+    {
+        $quote = $this->docs->findById($id);
+        if (!$quote) throw new \InvalidArgumentException('Document not found');
+        if ($quote->type !== 'QUOTE') throw new \InvalidArgumentException('Only a quote can be converted to an invoice');
+
+        if (!$force && $quote->number !== '') {
+            $existing = $this->docs->findInvoiceNumbersByQuoteRef($quote->number);
+            if ($existing) throw new \RuntimeException('already_converted:' . implode(',', $existing));
+        }
+
+        $number = $this->nextNumber('INVOICE')['number'];
+        $today  = date('Y-m-d');
+
+        $data = $quote->data;
+        $data['type']             = 'INVOICE';
+        $data['number']           = $number;
+        $data['date']             = $today;
+        $data['due_date']         = '';
+        $data['quote_ref']        = $quote->number;
+        $data['po_number']        = (string) ($data['po_number'] ?? '');
+        $data['tracking']         = '';
+        $data['amount_paid']      = 0;
+        $data['show_amount_paid'] = false;
+
+        $newId = $this->docs->create(new Document(
+            id: null, type: 'INVOICE', number: $number, date: $today, status: 'draft',
+            customer: $quote->customer, data: $data,
+        ));
+        return ['id' => $newId, 'number' => $number];
+    }
+
     public function defaultTemplate(string $type = 'INVOICE'): array
     {
         return [

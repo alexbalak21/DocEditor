@@ -192,6 +192,7 @@ function renderList(docs, filtered = false) {
         <a href="${BASE}/editor?id=${d.id}" class="btn btn-ghost btn-sm" style="background:#eee;color:#1a1d23;border:none">Edit</a>
         <a href="${BASE}/preview?id=${d.id}" target="_blank" class="btn btn-ghost btn-sm" style="background:#eee;color:#1a1d23;border:none">Print</a>
         <button class="btn btn-ghost btn-sm" style="background:#eee;color:#1a1d23;border:none" onclick="duplicateDoc(${d.id})">Copy</button>
+        ${d.type==='QUOTE'?`<button class="btn btn-primary btn-sm" title="Create an invoice from this quote" onclick="convertDoc(${d.id})">→ Invoice</button>`:''}
         <button class="btn btn-danger btn-sm" onclick="confirmDelete(${d.id},'${esc(d.number||'this document')}')">Del</button>
       </div></td>
     </tr>`).join('')}</tbody>
@@ -211,6 +212,16 @@ async function doDelete() {
   const json = await fetch(`${BASE}/api/documents/${id}/delete`,{method:'POST'}).then(r=>r.json());
   if (!json.ok) { toast('Error: '+json.error,'error'); return; }
   toast('Deleted','success'); loadDocs();
+}
+async function convertDoc(id, force = false) {
+  const json = await fetch(`${BASE}/api/documents/${id}/convert`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({force})}).then(r=>r.json());
+  if (json.code === 'already_converted') {
+    if (confirm(`This quote was already converted (${json.invoices.join(', ')}).\n\nCreate another invoice anyway?`)) return convertDoc(id, true);
+    return;
+  }
+  if (!json.ok) { toast(json.error || 'Conversion failed', 'error'); return; }
+  toast('Invoice ' + json.number + ' created', 'success');
+  setTimeout(() => { window.location.href = `${BASE}/editor?id=${json.id}`; }, 500);
 }
 async function duplicateDoc(id) {
   const json = await fetch(`${BASE}/api/documents/${id}/duplicate`,{method:'POST'}).then(r=>r.json());

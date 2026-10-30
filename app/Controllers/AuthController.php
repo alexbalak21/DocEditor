@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Core\Auth;
 use App\Core\Csrf;
+use App\Core\Logger;
 use App\Core\Request;
 use App\Core\Response;
 use App\Core\Session;
@@ -46,6 +47,12 @@ class AuthController
 
     public function logout(): void
     {
+        $user = Auth::user();
+        Logger::info('logout', [
+            'ip'    => Request::ip(),
+            'email' => $user?->email ?? 'unknown',
+            'uid'   => $user?->id,
+        ]);
         Auth::logout();
         Response::redirect('/login');
     }

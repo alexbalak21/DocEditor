@@ -4,6 +4,7 @@ use App\Controllers\DocumentController;
 use App\Controllers\CustomerController;
 use App\Controllers\ItemController;
 use App\Controllers\AuthController;
+use App\Controllers\LogController;
 use App\Controllers\ProfileController;
 use App\Controllers\Api\DocumentApiController;
 use App\Controllers\Api\CustomerApiController;
@@ -36,6 +37,8 @@ $router->get('/preview',        [DocumentController::class, 'preview']);
 $router->get('/customers',      [CustomerController::class, 'index']);
 $router->get('/items',          [ItemController::class,     'index']);
 $router->get('/documentation',  [DocumentController::class, 'documentation']);
+$router->get('/logs',           [LogController::class, 'index']);
+$router->get('/logs/download',  [LogController::class, 'download']);
 
 /**
  * API routes — JSON responses

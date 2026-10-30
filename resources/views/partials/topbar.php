@@ -7,6 +7,7 @@ $nav = [
     '/documents'    => ['icon' => 'fa-file-lines',    'label' => 'Documents'],
     '/customers'    => ['icon' => 'fa-users',          'label' => 'Customers'],
     '/items'        => ['icon' => 'fa-boxes-stacked',  'label' => 'Items'],
+    '/logs'         => ['icon' => 'fa-terminal',       'label' => 'Logs'],
 ];
 ?>
 <header class="topbar">

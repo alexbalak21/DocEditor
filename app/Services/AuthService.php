@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Core\Logger;
 use App\Models\User;
 use App\Repositories\LoginAttemptRepository;
 use App\Repositories\UserRepository;
@@ -27,6 +28,12 @@ class AuthService
 
         if ($this->isThrottled($ip, $email)) {
             $mins = max(1, (int) ceil($this->attempts->secondsUntilWindowFrees($ip, self::WINDOW_MINUTES) / 60));
+            Logger::warning('login.throttled', [
+                'ip'      => $ip,
+                'email'   => $email,
+                'wait_m'  => $mins,
+                'ip_count'  => $this->attempts->countForIp($ip, self::WINDOW_MINUTES),
+            ]);
             return ['ok' => false, 'error' => "Too many failed attempts. Please try again in about {$mins} minute(s)."];
         }
 
@@ -39,6 +46,12 @@ class AuthService
 
         if (!$valid) {
             $this->attempts->record($ip, $email);
+            Logger::warning('login.failed', [
+                'ip'          => $ip,
+                'email'       => $email,
+                'reason'      => $tooLong ? 'password_too_long' : 'bad_credentials',
+                'email_known' => $user !== null,
+            ]);
             return ['ok' => false, 'error' => 'Invalid email or password.'];
         }
 
@@ -47,6 +60,12 @@ class AuthService
         }
         $this->attempts->clear($ip, $email);
         $this->users->touchLogin($user->id);
+
+        Logger::info('login.success', [
+            'ip'    => $ip,
+            'email' => $email,
+            'uid'   => $user->id,
+        ]);
 
         return ['ok' => true, 'user' => $user];
     }

@@ -8,33 +8,17 @@ $__dir = PHP_SAPI === 'cli' ? '' : rtrim(str_replace('\\', '/', dirname($_SERVER
 define('BASE_URL', $__dir === '.' ? '' : $__dir);
 unset($__dir);
 
-// ── Autoloader ────────────────────────────────────────────────
-// If composer install has been run, use its autoloader (includes phpdotenv).
-// Otherwise fall back to our own simple PSR-4 loader.
-if (is_file(ROOT . '/vendor/autoload.php')) {
-    require ROOT . '/vendor/autoload.php';
+// ── Autoloader (no composer — pure PSR-4) ─────────────────────
+spl_autoload_register(function (string $class): void {
+    if (!str_starts_with($class, 'App\\')) return;
+    $relative = str_replace(['App\\', '\\'], ['app/', '/'], $class);
+    $file = ROOT . '/' . $relative . '.php';
+    if (is_file($file)) require_once $file;
+});
 
-    // Load .env via vlucas/phpdotenv
-    if (is_file(ROOT . '/.env')) {
-        $dotenv = Dotenv\Dotenv::createImmutable(ROOT);
-        $dotenv->load();
-    }
-
-    // Bridge: make Env::get() work by reading from $_ENV (phpdotenv fills $_ENV)
-    // We still register our Env class via PSR-4 autoload above, so it's available.
-} else {
-    // No vendor — use our minimal PSR-4 loader + built-in Env loader
-    spl_autoload_register(function (string $class): void {
-        // Only handle App\ namespace
-        if (!str_starts_with($class, 'App\\')) return;
-        $relative = str_replace(['App\\', '\\'], ['app/', '/'], $class);
-        $file = ROOT . '/' . $relative . '.php';
-        if (is_file($file)) require_once $file;
-    });
-
-    require_once ROOT . '/app/Core/Env.php';
-    \App\Core\Env::load(ROOT . '/.env');
-}
+// ── Environment (.env loader, no external library) ────────────
+require_once ROOT . '/app/Core/Env.php';
+\App\Core\Env::load(ROOT . '/.env');
 
 require_once ROOT . '/app/Core/helpers.php';
 
@@ -58,6 +42,14 @@ error_reporting($debug ? E_ALL : 0);
 if (!$debug) {
     set_exception_handler(function (Throwable $e): void {
         error_log((string) $e);   // details go to the server error log, never to the browser
+        try {
+            \App\Core\Logger::error('exception.unhandled', [
+                'class'   => get_class($e),
+                'message' => $e->getMessage(),
+                'file'    => $e->getFile() . ':' . $e->getLine(),
+                'uri'     => $_SERVER['REQUEST_URI'] ?? '',
+            ]);
+        } catch (\Throwable) {}
         $isApi = str_contains($_SERVER['REQUEST_URI'] ?? '', '/api/');
         if ($isApi) {
             \App\Core\Response::error('Internal server error', 500);

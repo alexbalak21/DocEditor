@@ -8,6 +8,12 @@ $__dir = PHP_SAPI === 'cli' ? '' : rtrim(str_replace('\\', '/', dirname($_SERVER
 define('BASE_URL', $__dir === '.' ? '' : $__dir);
 unset($__dir);
 
+// ── Sanity checks ─────────────────────────────────────────────
+if (!extension_loaded('sodium')) {
+    http_response_code(500);
+    die('DocEditor requires the PHP sodium extension. Install with: sudo apt install php-sodium');
+}
+
 // ── Autoloader (no composer — pure PSR-4) ─────────────────────
 spl_autoload_register(function (string $class): void {
     if (!str_starts_with($class, 'App\\')) return;

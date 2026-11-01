@@ -1,54 +1,107 @@
 #!/usr/bin/env php
 <?php
 /**
- * One-time migration: copy data from the old SQLite db to MySQL.
- * Usage: php database/migrations/002_sqlite_to_mysql_import.php /path/to/documents.sqlite
+ * Import DocEditor JSON exports into MySQL.
  *
- * Run AFTER php database/migrate.php
+ * Usage:
+ *   php database/migrations/002_sqlite_to_mysql_import.php documents.json customers.json items.json
+ *
+ * The filename is retained for compatibility with the previous SQLite importer.
+ * JSON files may be the application's normal exports: documents are wrapped in
+ * {documents: [...]}, while customers and items are usually bare arrays.
  */
 
 require_once dirname(dirname(__DIR__)) . '/bootstrap.php';
 
-use App\Core\Database;
+use App\Services\CustomerService;
+use App\Services\DocumentService;
+use App\Services\ItemService;
 
-$sqlitePath = $argv[1] ?? dirname(dirname(__DIR__)) . '/db/documents.sqlite';
-
-if (!file_exists($sqlitePath)) {
-    echo "SQLite file not found: $sqlitePath\n";
-    echo "Usage: php database/migrations/002_sqlite_to_mysql_import.php [/path/to/documents.sqlite]\n";
+$paths = array_slice($argv, 1);
+if ($paths === []) {
+    echo "Usage: php database/migrations/002_sqlite_to_mysql_import.php <file.json> [file.json ...]\n";
     exit(1);
 }
 
-echo "Importing from: $sqlitePath\n\n";
+$documents = new DocumentService();
+$customers = new CustomerService();
+$items = new ItemService();
 
-$sqlite = new PDO('sqlite:' . $sqlitePath);
-$sqlite->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-$mysql  = Database::getInstance();
-
-$tables = ['documents', 'customers', 'items'];
-foreach ($tables as $table) {
-    // Check if table exists in SQLite
-    $exists = $sqlite->query("SELECT name FROM sqlite_master WHERE type='table' AND name='$table'")->fetchColumn();
-    if (!$exists) { echo "Skipping $table (not in SQLite)\n"; continue; }
-
-    $rows = $sqlite->query("SELECT * FROM $table")->fetchAll(PDO::FETCH_ASSOC);
-    if (!$rows) { echo "$table: empty, skipping.\n"; continue; }
-
-    $cols    = array_keys($rows[0]);
-    // Remove auto-increment id and timestamp columns — let MySQL generate them
-    $insert  = array_filter($cols, fn($c) => !in_array($c, ['id']));
-    $colList = implode(', ', $insert);
-    $params  = implode(', ', array_map(fn($c) => ":$c", $insert));
-
-    $stmt = $mysql->prepare("INSERT INTO $table ($colList) VALUES ($params)");
-    $count = 0;
-    foreach ($rows as $row) {
-        $bound = [];
-        foreach ($insert as $col) $bound[":$col"] = $row[$col];
-        $stmt->execute($bound);
-        $count++;
+foreach ($paths as $path) {
+    if (!is_file($path) || !is_readable($path)) {
+        fwrite(STDERR, "JSON file not found or unreadable: $path\n");
+        exit(1);
     }
-    echo "✓ $table: $count row(s) imported.\n";
+
+    $decoded = json_decode((string) file_get_contents($path), true);
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        fwrite(STDERR, "$path: invalid JSON (" . json_last_error_msg() . ")\n");
+        exit(1);
+    }
+
+    $kind = detectKind($decoded, $path);
+    $rows = extractRows($decoded, $kind);
+    if ($rows === []) {
+        echo basename($path) . ": no $kind found, skipping.\n";
+        continue;
+    }
+
+    $result = match ($kind) {
+        'documents' => $documents->importMany($rows),
+        'customers' => $customers->importMany($rows),
+        'items' => $items->importMany($rows),
+    };
+
+    echo basename($path) . " ($kind): "
+        . $result['imported'] . " imported, "
+        . $result['skipped'] . " skipped, "
+        . $result['failed'] . " failed.\n";
+
+    if ($result['errors'] !== []) {
+        foreach ($result['errors'] as $error) {
+            echo "  - $error\n";
+        }
+    }
 }
 
-echo "\nDone.\n";
+echo "Done.\n";
+
+/**
+ * @param mixed $decoded
+ */
+function detectKind(mixed $decoded, string $path): string
+{
+    if (is_array($decoded)) {
+        foreach (['documents', 'customers', 'items'] as $kind) {
+            if (isset($decoded[$kind]) && is_array($decoded[$kind])) return $kind;
+        }
+
+        if (array_is_list($decoded) && $decoded !== []) {
+            $first = is_array($decoded[0]) ? $decoded[0] : [];
+            if (isset($first['data']) || isset($first['type']) || isset($first['items'])) return 'documents';
+            if (isset($first['reference'])) return 'items';
+            if (isset($first['name'])) return 'customers';
+        }
+    }
+
+    $name = strtolower(pathinfo($path, PATHINFO_FILENAME));
+    foreach (['documents', 'customers', 'items'] as $kind) {
+        if (str_contains($name, $kind)) return $kind;
+    }
+
+    throw new InvalidArgumentException(
+        "$path: unable to determine whether this is documents, customers, or items JSON"
+    );
+}
+
+/**
+ * @param mixed $decoded
+ * @return array<int, mixed>
+ */
+function extractRows(mixed $decoded, string $kind): array
+{
+    if (is_array($decoded) && isset($decoded[$kind]) && is_array($decoded[$kind])) {
+        return array_values($decoded[$kind]);
+    }
+    return is_array($decoded) && array_is_list($decoded) ? array_values($decoded) : [];
+}

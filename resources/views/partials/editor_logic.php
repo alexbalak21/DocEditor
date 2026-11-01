@@ -2,6 +2,63 @@
 
 const CURRENCY_SYMBOLS = { EUR:'€', USD:'$', GBP:'£', CHF:'CHF ' };
 
+// ── Template feature maps ─────────────────────────────────────
+let templateCache = {};
+
+async function fetchTemplate(typeOrId) {
+  const id = typeOrId.toLowerCase().replace(/\s+/g, '-');
+  if (templateCache[id]) return templateCache[id];
+  try {
+    const json = await fetch(`${BASE}/api/templates/${encodeURIComponent(id)}`).then(r=>r.json());
+    if (json.ok) templateCache[id] = json.template;
+    return templateCache[id] || null;
+  } catch { return null; }
+}
+
+// Map type string → template id
+function typeToTemplateId(type) {
+  const map = {
+    'INVOICE':'invoice','QUOTE':'quote','DELIVERY NOTE':'delivery-note',
+    'PROFORMA':'proforma','CREDIT NOTE':'credit-note'
+  };
+  return map[String(type).toUpperCase()] || 'invoice';
+}
+
+async function applyTemplateFeatures(type) {
+  const id  = typeToTemplateId(type);
+  const tpl = await fetchTemplate(id);
+  const f   = tpl?.features || {};
+  const b   = document.body;
+
+  // Section label
+  const custLabel = document.getElementById('customer-section-label');
+  if (custLabel) custLabel.textContent = f.show_delivery ? 'Deliver To' : 'Bill To';
+
+  // Feature CSS classes
+  const featureMap = {
+    'tpl-hide-prices':    !f.show_prices,
+    'tpl-hide-totals':    !f.show_totals,
+    'tpl-hide-bank':      !f.show_bank,
+    'tpl-hide-vat':       !f.show_vat,
+    'tpl-hide-due-date':  !f.show_due_date,
+    'tpl-hide-service':   !f.show_service_date,
+    'tpl-hide-quote-ref': !f.show_quote_ref,
+    'tpl-hide-po':        !f.show_po,
+    'tpl-hide-tracking':  !f.show_tracking,
+    'tpl-show-delivery':   !!f.show_delivery,
+  };
+  for (const [cls, active] of Object.entries(featureMap)) {
+    b.classList.toggle(cls, !!active);
+  }
+
+  // Delivery section visibility
+  const deliverySection = document.getElementById('sec-delivery-section');
+  if (deliverySection) {
+    deliverySection.classList.toggle('sec-delivery-hidden', !f.show_delivery);
+  }
+}
+
+
 let currentId = EDIT_ID;
 let docData   = null;
 let isDirty   = false;
@@ -24,10 +81,15 @@ document.querySelectorAll('.form-section-header').forEach(hdr => {
 function collectDoc() {
   return {
     type: v('f-type'), number: v('f-number'), date: v('f-date'),
+    template_id: typeToTemplateId(v('f-type')),
     due_date: v('f-due-date'),
     service_date_start: v('f-service-start'), service_date_end: v('f-service-end'),
     po_number: v('f-po'),
     quote_ref: v('f-quote-ref'), tracking: v('f-tracking'),
+    delivery_address:   v('f-delivery-address'),
+    carrier:            v('f-carrier'),
+    estimated_delivery: v('f-estimated-delivery'),
+    received_by:        v('f-received-by'),
     currency: v('f-currency'), currency_symbol: v('f-currency-symbol'),
     issuer: {
       name: v('f-issuer-name'), address: v('f-issuer-addr'), city: v('f-issuer-city'),
@@ -108,6 +170,11 @@ function populateForm(d) {
   set('f-service-start',d.service_date_start??d.service_date??''); set('f-service-end',d.service_date_end??'');
   set('f-po',d.po_number??'');
   set('f-quote-ref',d.quote_ref??''); set('f-tracking',d.tracking??'');
+  set('f-delivery-address',d.delivery_address??'');
+  set('f-carrier',d.carrier??'');
+  set('f-estimated-delivery',d.estimated_delivery??'');
+  set('f-received-by',d.received_by??'');
+  applyTemplateFeatures(d.type||'INVOICE');
   set('f-currency',d.currency??'EUR'); set('f-currency-symbol',d.currency_symbol??'€');
   const iss = d.issuer??{};
   set('f-issuer-name',iss.name??''); set('f-issuer-addr',iss.address??'');
@@ -150,6 +217,15 @@ function serviceDateLabel(d) {
 }
 
 function renderPreview(d) {
+  const tplId  = typeToTemplateId(d.type||'INVOICE');
+  const tpl    = templateCache[tplId];
+  const feat   = tpl?.features || {};
+  const showPrices  = feat.show_prices  !== false;
+  const showTotals  = feat.show_totals  !== false;
+  const showBank    = feat.show_bank    !== false;
+  const showDelivery= !!feat.show_delivery;
+  const showSig     = !!feat.show_signature;
+
   const sym = esc(d.currency_symbol||'€');
   const type = esc(d.type||'INVOICE');
   let extraRows='';
@@ -163,24 +239,59 @@ function renderPreview(d) {
   (d.items||[]).forEach(it=>{if(!it.is_free)subtotal+=(parseFloat(it.unit_price)||0)*(parseFloat(it.qty)||0);});
   const vatRate=parseFloat(d.vat_rate)||0, vatAmt=subtotal*vatRate/100;
   const total=subtotal+vatAmt, amtPaid=parseFloat(d.amount_paid)||0, balance=total-amtPaid;
+  const colSpan = showPrices ? 5 : 3;
   let itemRows=(d.items||[]).map(it=>{
     const free=!!it.is_free;
     const up=free?'offert':(sym+' '+fmt(parseFloat(it.unit_price)||0));
     const am=free?'offert':(sym+' '+fmt((parseFloat(it.unit_price)||0)*(parseFloat(it.qty)||0)));
+    const priceCols = showPrices
+      ? `<td class="price center">${up}</td><td class="amount right">${am}</td>`
+      : '';
     return`<tr><td>${esc(it.name||'')}${it.description?`<div class="item-desc">${escNl(it.description)}</div>`:''}</td>
-      <td class="ref">${esc(it.reference||'')}</td><td class="price center">${up}</td>
-      <td class="qty center">${esc(String(it.qty??''))}</td><td class="amount right">${am}</td></tr>`;
-  }).join('')||'<tr><td colspan="5" style="color:#aaa;text-align:center;padding:14px">No items yet</td></tr>';
-  let totalRows=`<tr><td>Subtotal (excl. VAT)</td><td class="right">${sym} ${fmt(subtotal)}</td></tr>
-    <tr><td>VAT${vatRate>0?` (${vatRate}%)`:''}</td><td class="right">${sym} ${fmt(vatAmt)}</td></tr>`;
-  if(d.show_amount_paid&&amtPaid>0) totalRows+=`<tr><td>Amount Paid</td><td class="right">${sym} ${fmt(amtPaid)}</td></tr>`;
-  totalRows+=`<tr class="grand-total"><td>${esc(d.balance_label||'TOTAL DUE')} (${esc(d.currency||'EUR')})</td><td class="right">${sym} ${fmt(balance)}</td></tr>`;
+      <td class="ref">${esc(it.reference||'')}</td>
+      <td class="qty center">${esc(String(it.qty??''))}</td>${priceCols}</tr>`;
+  }).join('')||`<tr><td colspan="${colSpan}" style="color:#aaa;text-align:center;padding:14px">No items yet</td></tr>`;
+
+  const priceHeaders = showPrices
+    ? `<th class="price">Unit Price (${sym})</th><th class="amount">Amount (${sym})</th>`
+    : '';
+
+  let totalRows='';
+  if(showTotals){
+    totalRows=`<tr><td>Subtotal (excl. VAT)</td><td class="right">${sym} ${fmt(subtotal)}</td></tr>
+      <tr><td>VAT${vatRate>0?` (${vatRate}%)`:''}</td><td class="right">${sym} ${fmt(vatAmt)}</td></tr>`;
+    if(d.show_amount_paid&&amtPaid>0) totalRows+=`<tr><td>Amount Paid</td><td class="right">${sym} ${fmt(amtPaid)}</td></tr>`;
+    totalRows+=`<tr class="grand-total"><td>${esc(d.balance_label||'TOTAL DUE')} (${esc(d.currency||'EUR')})</td><td class="right">${sym} ${fmt(balance)}</td></tr>`;
+  }
   const cu=d.customer||{}, iss=d.issuer||{}, bank=d.bank||{};
   const parts=[]; if(cu.contact)parts.push(cu.contact); if(cu.phone)parts.push('TEL: '+cu.phone); if(cu.vat)parts.push('VAT: '+cu.vat);
   const contactLine=parts.length?`<div class="customer-contact">${esc(parts.join(' — '))}</div>`:'';
   const logoHtml=LOGO_DATA_URI?`<img class="logo" src="${LOGO_DATA_URI}" alt="Logo">`:'';
   const bankFields=[['beneficiary','Beneficiary'],['bank_name','Bank name'],['bank_address','Bank address'],['iban','IBAN'],['bic','BIC / SWIFT']];
   let bankRows=bankFields.map(([k,l])=>bank[k]?`<tr><td class="bank-label">${l}:</td><td>${k==='iban'?`<strong>${esc(bank[k])}</strong>`:esc(bank[k])}</td></tr>`:'').join('');
+  // Delivery section for Delivery Notes
+  const deliveryAddr = d.delivery_address || '';
+  const deliveryBlock = showDelivery ? `
+    <section class="bill-to" style="margin-top:10px">
+      <div class="section-title">Delivery Details</div>
+      <table class="invoice-info" style="margin-top:6px"><tbody>
+        ${d.carrier?`<tr><td style="width:120px">Carrier:</td><td>${esc(d.carrier)}</td></tr>`:''}
+        ${d.estimated_delivery?`<tr><td>Est. Delivery:</td><td>${esc(d.estimated_delivery)}</td></tr>`:''}
+        ${deliveryAddr?`<tr><td>Ship To:</td><td>${escNl(deliveryAddr)}</td></tr>`:''}
+      </tbody></table>
+    </section>` : '';
+
+  const signatureBlock = showSig ? `
+    <div class="signature-block" style="margin-top:24px;display:flex;gap:40px">
+      <div style="flex:1;border-top:1px solid #333;padding-top:6px;font-size:11px;color:#666">
+        Dispatched by: ${esc(iss.name||'')}
+      </div>
+      <div style="flex:1;border-top:1px solid #333;padding-top:6px;font-size:11px;color:#666">
+        Received by: ${d.received_by?esc(d.received_by):'_______________________'}
+        <br>Date: _______________
+      </div>
+    </div>` : '';
+
   document.getElementById('preview-doc').innerHTML=`
 <div class="page">
   <header class="doc-header">
@@ -191,17 +302,19 @@ function renderPreview(d) {
     </div>
   </header>
   <div class="content">
-    <section class="bill-to"><div class="section-title">Bill To</div>
+    <section class="bill-to"><div class="section-title">${showDelivery?'Deliver To':'Bill To'}</div>
       <div class="customer"><strong>${esc(cu.name||'')}</strong><br>${cu.address?esc(cu.address)+'<br>':''}${cu.city?esc(cu.city):''}${contactLine}</div>
     </section>
-    <table class="items"><thead><tr><th>Name</th><th class="ref">Ref.</th><th class="price">Unit Price (${sym})</th><th class="qty">Qty</th><th class="amount">Amount (${sym})</th></tr></thead>
+    ${deliveryBlock}
+    <table class="items"><thead><tr><th>Name</th><th class="ref">Ref.</th><th class="qty">Qty</th>${priceHeaders}</tr></thead>
       <tbody>${itemRows}</tbody></table>
-    <div class="totals"><table><tbody>${totalRows}</tbody></table></div>
+    ${showTotals?`<div class="totals"><table><tbody>${totalRows}</tbody></table></div>`:''}
     <div class="spacer"></div>
     ${d.vat_mention?`<div class="vat-mention">${escNl(d.vat_mention)}</div>`:''}
     ${d.notes?`<div class="notes-block"><strong>Notes</strong>${escNl(d.notes)}</div>`:''}
-    ${bankRows?`<div class="bank-details"><strong>${esc(bank.label||'Bank Details')}</strong><table class="bank-info"><tbody>${bankRows}</tbody></table></div>`:''}
+    ${showBank&&bankRows?`<div class="bank-details"><strong>${esc(bank.label||'Bank Details')}</strong><table class="bank-info"><tbody>${bankRows}</tbody></table></div>`:''}
     ${d.terms?`<div class="terms-block"><strong>Terms &amp; Conditions</strong><div>${escNl(d.terms)}</div></div>`:''}
+    ${signatureBlock}
   </div>
   <footer class="doc-footer">${d.footer_thanks?`<div class="thanks">${esc(d.footer_thanks)}</div>`:''}${d.footer_contact?`<div class="contact">${escNl(d.footer_contact)}</div>`:''}</footer>
 </div>`;
@@ -214,6 +327,11 @@ function escNl(s){return esc(s).replace(/\n/g,'<br>');}
 function onFormChange() {
   const d=collectDoc(); docData=d; renderPreview(d); updateTopBar(d); isDirty=true; scheduleAutoSave();
 }
+
+// Re-apply features when type dropdown changes manually
+document.getElementById('f-type')?.addEventListener('change', function() {
+  applyTemplateFeatures(this.value);
+});
 
 function updateTopBar(d) {
   const cv=document.getElementById('btn-convert');
@@ -534,7 +652,9 @@ async function init(){
     try{
       const json=await fetch(API.docGet(EDIT_ID)).then(r=>r.json());
       if(!json.ok)throw new Error(json.error);
-      docData=json.document.data; populateForm(docData); renderPreview(docData);
+      docData=json.document.data;
+      await applyTemplateFeatures(docData.type||'INVOICE');
+      populateForm(docData); renderPreview(docData);
       setAutosaveStatus('saved','Loaded from database');
     }catch(e){toast('Failed to load: '+e.message,'error');}
   } else {
@@ -544,6 +664,7 @@ async function init(){
     }catch{ docData={}; }
     if(!docData) docData={};
     docData.type=NEW_TYPE;
+    await applyTemplateFeatures(NEW_TYPE);
     populateForm(docData); renderPreview(docData);
     setAutosaveStatus('','New document — not saved yet');
   }

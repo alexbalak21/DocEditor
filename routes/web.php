@@ -5,6 +5,8 @@ use App\Controllers\CustomerController;
 use App\Controllers\ItemController;
 use App\Controllers\AuthController;
 use App\Controllers\LogController;
+use App\Controllers\NoteController;
+use App\Controllers\Api\TemplateApiController;
 use App\Controllers\ProfileController;
 use App\Controllers\Api\DocumentApiController;
 use App\Controllers\Api\CustomerApiController;
@@ -37,8 +39,13 @@ $router->get('/preview',        [DocumentController::class, 'preview']);
 $router->get('/customers',      [CustomerController::class, 'index']);
 $router->get('/items',          [ItemController::class,     'index']);
 $router->get('/documentation',  [DocumentController::class, 'documentation']);
-$router->get('/logs',           [LogController::class, 'index']);
-$router->get('/logs/download',  [LogController::class, 'download']);
+$router->get('/logs',                    [LogController::class,  'index']);
+$router->get('/logs/download',           [LogController::class,  'download']);
+$router->get('/notes',                   [NoteController::class, 'index']);
+$router->post('/api/notes',              [NoteController::class, 'store']);
+$router->post('/api/notes/:id/delete',   [NoteController::class,        'destroy']);
+$router->get('/api/templates',           [TemplateApiController::class, 'index']);
+$router->get('/api/templates/:id',       [TemplateApiController::class, 'show']);
 
 /**
  * API routes — JSON responses

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Document;
 use App\Repositories\DocumentRepository;
 use App\Repositories\CustomerRepository;
+use App\Services\TemplateService;
 use App\Core\Database;
 
 class DocumentService
@@ -211,16 +212,22 @@ class DocumentService
 
     public function defaultTemplate(string $type = 'INVOICE'): array
     {
-        return [
-            'type'         => $type,
-            'number'       => '',
-            'date'         => date('Y-m-d'),
-            'due_date'     => '',
+        $tplDefaults = TemplateService::defaultsForType($type);
+        $base = [
+            'type'               => $type,
+            'template_id'        => TemplateService::idForType($type),
+            'number'             => '',
+            'date'               => date('Y-m-d'),
+            'due_date'           => '',
             'service_date_start' => '',
             'service_date_end'   => '',
             'po_number'          => '',
-            'quote_ref'    => '',
-            'tracking'     => '',
+            'quote_ref'          => '',
+            'tracking'           => '',
+            'delivery_address'   => '',
+            'carrier'            => '',
+            'estimated_delivery' => '',
+            'received_by'        => '',
             'issuer' => [
                 'name'        => 'NOVOCIB SAS',
                 'address'     => 'BD de Chatillon, Quai Jean Voisin',
@@ -233,16 +240,16 @@ class DocumentService
                 'name' => '', 'address' => '', 'city' => '',
                 'contact' => '', 'phone' => '', 'vat' => '',
             ],
-            'currency'        => 'EUR',
-            'currency_symbol' => '€',
-            'items'           => [],
-            'vat_rate'        => 0,
-            'amount_paid'     => 0,
-            'show_amount_paid'=> false,
-            'balance_label'   => 'TOTAL DUE',
-            'vat_mention'     => '',
-            'notes'           => '',
-            'terms'           => 'PAYMENT IMMEDIATE UPON RECEIPT, by credit card or wire transfer.',
+            'currency'         => 'EUR',
+            'currency_symbol'  => '€',
+            'items'            => [],
+            'vat_rate'         => 0,
+            'amount_paid'      => 0,
+            'show_amount_paid' => false,
+            'balance_label'    => $tplDefaults['balance_label'] ?? 'TOTAL DUE',
+            'vat_mention'      => $tplDefaults['vat_mention']   ?? '',
+            'notes'            => '',
+            'terms'            => $tplDefaults['terms']          ?? 'PAYMENT IMMEDIATE UPON RECEIPT, by credit card or wire transfer.',
             'bank' => [
                 'label'        => 'Bank Details EUR - Banque Populaire, France',
                 'beneficiary'  => 'SAS NOVOCIB',
@@ -254,24 +261,19 @@ class DocumentService
             'footer_thanks'  => 'Thank you for your business!',
             'footer_contact' => "If you have any questions, please contact us.\n• lbalakireva@novocib.com",
         ];
+        return $base;
     }
 
     // ── Document numbering ────────────────────────────────────
 
-    private static array $prefixMap = [
-        'INVOICE'        => 'INV',
-        'QUOTE'          => 'QUO',
-        'CREDIT NOTE'    => 'CRN',
-        'OTHER'          => 'DOC',
-        'PROFORMA'       => 'PRO',
-        'DELIVERY NOTE'  => 'DLV',
-    ];
-
     public function typeToPrefix(string $type): string
     {
-        $type = strtoupper(trim($type));
-        if (isset(self::$prefixMap[$type])) return self::$prefixMap[$type];
-        $clean = preg_replace('/[^A-Z]/', '', $type);
+        // Delegate to TemplateService so prefix is always in sync with the manifest
+        $id = TemplateService::idForType($type);
+        $m  = TemplateService::get($id);
+        if ($m && !empty($m['numbering']['prefix'])) return $m['numbering']['prefix'];
+        // Fallback for custom types
+        $clean = preg_replace('/[^A-Z]/', '', strtoupper(trim($type)));
         return $clean !== '' ? substr($clean, 0, 3) : 'DOC';
     }
 

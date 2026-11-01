@@ -1,0 +1,37 @@
+{
+  "id": "invoice",
+  "version": 1,
+  "name": "Invoice",
+  "description": "Standard sales invoice with VAT, bank details and payment terms.",
+  "icon": "fa-file-invoice",
+  "color": "#3771c8",
+  "numbering": { "prefix": "INV" },
+  "statuses": ["draft", "final", "paid"],
+  "sections": {
+    "header":   { "label": "Document Header", "open": true },
+    "customer": { "label": "Bill To",         "open": true },
+    "items":    { "label": "Line Items",       "open": true },
+    "totals":   { "label": "Totals & VAT",    "open": false },
+    "text":     { "label": "Notes & Terms",   "open": false },
+    "bank":     { "label": "Bank Details",    "open": false },
+    "issuer":   { "label": "Issuer",          "open": false }
+  },
+  "features": {
+    "show_prices":      true,
+    "show_totals":      true,
+    "show_bank":        true,
+    "show_vat":         true,
+    "show_quote_ref":   true,
+    "show_po":          true,
+    "show_due_date":    true,
+    "show_service_date":true,
+    "show_tracking":    false,
+    "show_delivery":    false,
+    "show_signature":   false
+  },
+  "defaults": {
+    "balance_label": "TOTAL DUE",
+    "vat_mention":   "",
+    "terms":         "PAYMENT IMMEDIATE UPON RECEIPT, by credit card or wire transfer. A fixed indemnity of 40 euros for recovery costs is due to the creditor in case of late payment."
+  }
+}

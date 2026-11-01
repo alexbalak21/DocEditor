@@ -43,7 +43,7 @@ doceditor/
 │   ├── migrate.php         — CLI migration runner
 │   └── migrations/
 │       ├── 001_create_tables.sql               — MySQL schema
-│       └── 002_sqlite_to_mysql_import.php      — one-time SQLite → MySQL
+│       └── 002_sqlite_to_mysql_import.php      — one-time JSON → MySQL
 ├── public/
 │   ├── index.php           — single entry point (all HTTP requests)
 │   ├── .htaccess           — mod_rewrite → index.php
@@ -183,10 +183,10 @@ FLUSH PRIVILEGES;
 php database/migrate.php
 ```
 
-### 7. (Optional) Import data from old SQLite app
+### 7. (Optional) Import JSON exports
 
 ```bash
-php database/migrations/002_sqlite_to_mysql_import.php /path/to/old/db/documents.sqlite
+php database/migrations/002_sqlite_to_mysql_import.php documents.json customers.json items.json
 ```
 
 ### 8. Point your web server at `public/`

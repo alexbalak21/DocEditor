@@ -23,8 +23,7 @@ html,body{height:auto;overflow:auto}
       <label class="btn btn-secondary btn-sm" style="cursor:pointer">⬆ Import
         <input type="file" id="btn-import" accept=".json,application/json" style="display:none">
       </label>
-      <button class="btn btn-secondary btn-sm" onclick="openNew('QUOTE')">+ Quote</button>
-      <button class="btn btn-primary btn-sm" onclick="openNew('INVOICE')">+ Invoice</button>
+      <button class="btn btn-primary btn-sm" onclick="openTemplateChooser()"><i class="fa-solid fa-plus"></i> New Document</button>
     </div>
   </div>
 
@@ -34,6 +33,8 @@ html,body{height:auto;overflow:auto}
       <option value="">All types</option>
       <option value="INVOICE">Invoice</option>
       <option value="QUOTE">Quote</option>
+      <option value="DELIVERY NOTE">Delivery Note</option>
+      <option value="PROFORMA">Proforma</option>
       <option value="CREDIT NOTE">Credit Note</option>
       <option value="OTHER">Other</option>
     </select>
@@ -77,7 +78,33 @@ html,body{height:auto;overflow:auto}
 const TYPE_CLASSES   = {INVOICE:'type-invoice',QUOTE:'type-quote','CREDIT NOTE':'type-credit',OTHER:'type-other'};
 const STATUS_CLASSES = {draft:'badge-draft',final:'badge-final',paid:'badge-paid'};
 
-function openNew(type) { window.location.href = `${BASE}/editor?type=${type}`; }
+function openNew(type) { window.location.href = `${BASE}/editor?type=${encodeURIComponent(type)}`; }
+
+// ── Template chooser ──────────────────────────────────────────
+async function openTemplateChooser() {
+  const modal = document.getElementById('tpl-chooser');
+  const grid  = document.getElementById('tpl-grid');
+  modal.style.display = 'flex';
+  grid.innerHTML = '<div class="tpl-loading"><i class="fa-solid fa-spinner fa-spin"></i> Loading templates…</div>';
+  try {
+    const res  = await fetch(`${BASE}/api/templates`);
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.error);
+    grid.innerHTML = json.templates.map(t => `
+      <button class="tpl-card" onclick="openNew('${t.id.toUpperCase().replace(/-/g,' ')}')" style="--tpl-color:${t.color}">
+        <span class="tpl-icon"><i class="fa-solid ${t.icon}"></i></span>
+        <span class="tpl-name">${t.name}</span>
+        <span class="tpl-desc">${t.description}</span>
+      </button>
+    `).join('');
+  } catch(e) {
+    grid.innerHTML = `<div class="tpl-loading" style="color:var(--ui-danger)">${e.message}</div>`;
+  }
+}
+function closeTemplateChooser() {
+  document.getElementById('tpl-chooser').style.display = 'none';
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeTemplateChooser(); });
 
 // ── dates: stored as yyyy-mm-dd, shown (and typed) as dd/mm/yyyy ──
 function fmtDate(iso) {
@@ -252,3 +279,65 @@ document.getElementById('btn-import').addEventListener('change', function () {
 restoreFilters();
 loadDocs();
 </script>
+
+<!-- ── Template chooser modal ─────────────────────────────── -->
+<style>
+.tpl-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.5); z-index: 2000;
+  align-items: center; justify-content: center;
+}
+.tpl-modal {
+  background: white; border-radius: 12px;
+  width: 640px; max-width: 95vw; max-height: 90vh;
+  box-shadow: 0 16px 48px rgba(0,0,0,.22);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.tpl-modal-head {
+  display: flex; align-items: center;
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid var(--ui-border);
+}
+.tpl-modal-head h2 { font-size: 16px; font-weight: 700; margin: 0; flex: 1; color: var(--ui-text); }
+.tpl-modal-close {
+  background: none; border: none; font-size: 18px;
+  color: var(--ui-text-muted); cursor: pointer; padding: 2px 6px; border-radius: 4px;
+}
+.tpl-modal-close:hover { background: var(--ui-input-bg); }
+.tpl-modal-body { padding: 20px 22px; overflow-y: auto; }
+.tpl-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.tpl-card {
+  display: flex; flex-direction: column; align-items: flex-start;
+  gap: 6px; padding: 16px 18px;
+  background: white; border: 2px solid var(--ui-border);
+  border-radius: 8px; cursor: pointer; text-align: left;
+  font-family: var(--font); transition: border-color .15s, box-shadow .15s, background .15s;
+  width: 100%;
+}
+.tpl-card:hover {
+  border-color: var(--tpl-color, var(--ui-primary));
+  background: color-mix(in srgb, var(--tpl-color, var(--ui-primary)) 5%, white);
+  box-shadow: 0 4px 12px rgba(0,0,0,.1);
+}
+.tpl-icon { font-size: 22px; color: var(--tpl-color, var(--ui-primary)); margin-bottom: 2px; }
+.tpl-name { font-size: 14px; font-weight: 700; color: var(--ui-text); }
+.tpl-desc { font-size: 12px; color: var(--ui-text-muted); line-height: 1.4; }
+.tpl-loading { grid-column: 1/-1; text-align: center; padding: 32px; color: var(--ui-text-muted); font-size: 14px; }
+</style>
+
+<div class="tpl-overlay" id="tpl-chooser" onclick="if(event.target===this)closeTemplateChooser()">
+  <div class="tpl-modal">
+    <div class="tpl-modal-head">
+      <h2><i class="fa-solid fa-layer-group" style="margin-right:8px;opacity:.6"></i>Choose a document type</h2>
+      <button class="tpl-modal-close" onclick="closeTemplateChooser()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="tpl-modal-body">
+      <div class="tpl-grid" id="tpl-grid">
+        <div class="tpl-loading"><i class="fa-solid fa-spinner fa-spin"></i></div>
+      </div>
+    </div>
+  </div>
+</div>

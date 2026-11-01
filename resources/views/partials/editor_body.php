@@ -231,4 +231,25 @@
   </div>
 </div>
 
-<div class="toast-container" id="toast-container"></div>
+<script>
+// ── Constants injected from PHP ───────────────────────────────
+const EDIT_ID      = <?= $editId ? (int)$editId : 'null' ?>;
+const NEW_TYPE     = <?= json_encode($newType) ?>;
+const LOGO_DATA_URI= <?= json_encode($logoDataUri) ?>;
+
+// ── API calls use the REST routes ─────────────────────────────
+const API = {
+  docList:      (q,type) => `${BASE}/api/documents?q=${encodeURIComponent(q)}&type=${encodeURIComponent(type)}`,
+  docGet:       (id)     => `${BASE}/api/documents/${id}`,
+  docSave:      ()       => `${BASE}/api/documents`,
+  docUpdate:    (id)     => `${BASE}/api/documents/${id}`,
+  docDefault:   (type)   => `${BASE}/api/documents/default?type=${encodeURIComponent(type)}`,
+  nextNumber:   (type)   => `${BASE}/api/numbers/next?type=${encodeURIComponent(type)}`,
+  customers:    (q)      => `${BASE}/api/customers?q=${encodeURIComponent(q)}`,
+  customerGet:  (id)     => `${BASE}/api/customers/${id}`,
+  items:        (q)      => `${BASE}/api/items?q=${encodeURIComponent(q)}`,
+  itemGet:      (id)     => `${BASE}/api/items/${id}`,
+};
+
+<?php include ROOT . '/resources/views/partials/editor_logic.php'; ?>
+</script>

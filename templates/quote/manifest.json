@@ -2,35 +2,62 @@
   "id": "quote",
   "version": 1,
   "name": "Quote",
-  "description": "Commercial quote / estimate. Converts to an invoice in one click.",
-  "icon": "fa-file-pen",
-  "color": "#7c3aed",
-  "numbering": { "prefix": "QUO" },
-  "statuses": ["draft", "final"],
+  "description": "Offer a price before the work: validity, quantities and totals.",
+  "icon": "fa-file-signature",
+  "color": "#e67e22",
+  "numbering": {
+    "prefix": "QUO"
+  },
+  "statuses": [
+    "draft",
+    "final"
+  ],
   "sections": {
-    "header":   { "label": "Document Header", "open": true },
-    "customer": { "label": "Bill To",         "open": true },
-    "items":    { "label": "Line Items",       "open": true },
-    "totals":   { "label": "Totals & VAT",    "open": false },
-    "text":     { "label": "Notes & Terms",   "open": false },
-    "issuer":   { "label": "Issuer",          "open": false }
+    "header": {
+      "label": "Document Header",
+      "open": true
+    },
+    "customer": {
+      "label": "Bill To",
+      "open": true
+    },
+    "items": {
+      "label": "Line Items",
+      "open": true
+    },
+    "totals": {
+      "label": "Totals & VAT",
+      "open": false
+    },
+    "text": {
+      "label": "Notes & Terms",
+      "open": false
+    },
+    "bank": {
+      "label": "Bank Details",
+      "open": false
+    },
+    "issuer": {
+      "label": "Issuer",
+      "open": false
+    }
   },
   "features": {
-    "show_prices":      true,
-    "show_totals":      true,
-    "show_bank":        false,
-    "show_vat":         true,
-    "show_quote_ref":   false,
-    "show_po":          true,
-    "show_due_date":    false,
-    "show_service_date":true,
-    "show_tracking":    false,
-    "show_delivery":    false,
-    "show_signature":   false
+    "show_prices": true,
+    "show_totals": true,
+    "show_bank": true,
+    "show_vat": true,
+    "show_quote_ref": false,
+    "show_po": false,
+    "show_due_date": false,
+    "show_service_date": false,
+    "show_tracking": false,
+    "show_delivery": false,
+    "show_signature": false
   },
   "defaults": {
-    "balance_label": "TOTAL ESTIMATE",
-    "vat_mention":   "",
-    "terms":         "This quote is valid for 30 days from the date above."
+    "balance_label": "TOTAL",
+    "vat_mention": "",
+    "terms": "This quote is valid for 30 days from its date. Prices are in the currency shown and exclude taxes unless stated."
   }
 }

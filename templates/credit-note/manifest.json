@@ -2,36 +2,62 @@
   "id": "credit-note",
   "version": 1,
   "name": "Credit Note",
-  "description": "Credit note / refund document. References the original invoice.",
+  "description": "Credit a customer for a return, a correction or a cancelled invoice.",
   "icon": "fa-file-circle-minus",
-  "color": "#dc2626",
-  "numbering": { "prefix": "CRN" },
-  "statuses": ["draft", "final"],
+  "color": "#c0392b",
+  "numbering": {
+    "prefix": "CRN"
+  },
+  "statuses": [
+    "draft",
+    "final"
+  ],
   "sections": {
-    "header":   { "label": "Document Header", "open": true },
-    "customer": { "label": "Bill To",         "open": true },
-    "items":    { "label": "Line Items",       "open": true },
-    "totals":   { "label": "Totals & VAT",    "open": false },
-    "text":     { "label": "Notes & Terms",   "open": false },
-    "bank":     { "label": "Bank Details",    "open": false },
-    "issuer":   { "label": "Issuer",          "open": false }
+    "header": {
+      "label": "Document Header",
+      "open": true
+    },
+    "customer": {
+      "label": "Bill To",
+      "open": true
+    },
+    "items": {
+      "label": "Line Items",
+      "open": true
+    },
+    "totals": {
+      "label": "Totals & VAT",
+      "open": false
+    },
+    "text": {
+      "label": "Notes & Terms",
+      "open": false
+    },
+    "bank": {
+      "label": "Bank Details",
+      "open": false
+    },
+    "issuer": {
+      "label": "Issuer",
+      "open": false
+    }
   },
   "features": {
-    "show_prices":      true,
-    "show_totals":      true,
-    "show_bank":        true,
-    "show_vat":         true,
-    "show_quote_ref":   true,
-    "show_po":          false,
-    "show_due_date":    false,
-    "show_service_date":false,
-    "show_tracking":    false,
-    "show_delivery":    false,
-    "show_signature":   false
+    "show_prices": true,
+    "show_totals": true,
+    "show_bank": true,
+    "show_vat": true,
+    "show_quote_ref": false,
+    "show_po": false,
+    "show_due_date": true,
+    "show_service_date": false,
+    "show_tracking": false,
+    "show_delivery": false,
+    "show_signature": false
   },
   "defaults": {
     "balance_label": "TOTAL CREDIT",
-    "vat_mention":   "",
-    "terms":         "This credit note will be applied to your account or refunded within 14 days."
+    "vat_mention": "",
+    "terms": "This credit note will be deducted from your next invoice or refunded on request."
   }
 }

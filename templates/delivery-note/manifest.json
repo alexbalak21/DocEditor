@@ -2,35 +2,62 @@
   "id": "delivery-note",
   "version": 1,
   "name": "Delivery Note",
-  "description": "Packing slip / delivery note. No prices. Includes carrier, tracking and signature line.",
-  "icon": "fa-truck",
-  "color": "#0891b2",
-  "numbering": { "prefix": "DN" },
-  "statuses": ["draft", "final"],
+  "description": "Goods shipped to a customer: quantities and delivery details, no prices.",
+  "icon": "fa-truck-fast",
+  "color": "#16a085",
+  "numbering": {
+    "prefix": "DLV"
+  },
+  "statuses": [
+    "draft",
+    "final"
+  ],
   "sections": {
-    "header":   { "label": "Document Header",  "open": true },
-    "customer": { "label": "Deliver To",       "open": true },
-    "delivery": { "label": "Delivery Details", "open": true },
-    "items":    { "label": "Items",            "open": true },
-    "text":     { "label": "Notes",            "open": false },
-    "issuer":   { "label": "Issuer",           "open": false }
+    "header": {
+      "label": "Document Header",
+      "open": true
+    },
+    "customer": {
+      "label": "Deliver To",
+      "open": true
+    },
+    "items": {
+      "label": "Line Items",
+      "open": true
+    },
+    "totals": {
+      "label": "Totals & VAT",
+      "open": false
+    },
+    "text": {
+      "label": "Notes & Terms",
+      "open": false
+    },
+    "bank": {
+      "label": "Bank Details",
+      "open": false
+    },
+    "issuer": {
+      "label": "Issuer",
+      "open": false
+    }
   },
   "features": {
-    "show_prices":      false,
-    "show_totals":      false,
-    "show_bank":        false,
-    "show_vat":         false,
-    "show_quote_ref":   true,
-    "show_po":          true,
-    "show_due_date":    false,
-    "show_service_date":false,
-    "show_tracking":    true,
-    "show_delivery":    true,
-    "show_signature":   true
+    "show_prices": false,
+    "show_totals": false,
+    "show_bank": false,
+    "show_vat": false,
+    "show_quote_ref": false,
+    "show_po": true,
+    "show_due_date": false,
+    "show_service_date": false,
+    "show_tracking": true,
+    "show_delivery": true,
+    "show_signature": true
   },
   "defaults": {
     "balance_label": "",
-    "vat_mention":   "",
-    "terms":         ""
+    "vat_mention": "",
+    "terms": "Please check the goods on receipt and report any damage or shortage within 48 hours."
   }
 }

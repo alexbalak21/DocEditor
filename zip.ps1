@@ -8,6 +8,7 @@
 "resources" `
 "routes" `
 "storage" `
+"templates" `
 ".env" `
 ".env.example" `
 "bootstrap.php" `

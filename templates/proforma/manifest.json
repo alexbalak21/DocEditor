@@ -2,36 +2,62 @@
   "id": "proforma",
   "version": 1,
   "name": "Proforma Invoice",
-  "description": "Proforma invoice for customs or advance payment. Not a tax document.",
-  "icon": "fa-file-invoice-dollar",
-  "color": "#d97706",
-  "numbering": { "prefix": "PRO" },
-  "statuses": ["draft", "final"],
+  "description": "Preliminary invoice for customs, advance payment or approval. Not a tax invoice.",
+  "icon": "fa-file-lines",
+  "color": "#8e44ad",
+  "numbering": {
+    "prefix": "PRO"
+  },
+  "statuses": [
+    "draft",
+    "final"
+  ],
   "sections": {
-    "header":   { "label": "Document Header", "open": true },
-    "customer": { "label": "Bill To",         "open": true },
-    "items":    { "label": "Line Items",       "open": true },
-    "totals":   { "label": "Totals & VAT",    "open": false },
-    "text":     { "label": "Notes & Terms",   "open": false },
-    "bank":     { "label": "Bank Details",    "open": false },
-    "issuer":   { "label": "Issuer",          "open": false }
+    "header": {
+      "label": "Document Header",
+      "open": true
+    },
+    "customer": {
+      "label": "Bill To",
+      "open": true
+    },
+    "items": {
+      "label": "Line Items",
+      "open": true
+    },
+    "totals": {
+      "label": "Totals & VAT",
+      "open": false
+    },
+    "text": {
+      "label": "Notes & Terms",
+      "open": false
+    },
+    "bank": {
+      "label": "Bank Details",
+      "open": false
+    },
+    "issuer": {
+      "label": "Issuer",
+      "open": false
+    }
   },
   "features": {
-    "show_prices":      true,
-    "show_totals":      true,
-    "show_bank":        true,
-    "show_vat":         true,
-    "show_quote_ref":   false,
-    "show_po":          true,
-    "show_due_date":    true,
-    "show_service_date":false,
-    "show_tracking":    false,
-    "show_delivery":    false,
-    "show_signature":   false
+    "show_prices": true,
+    "show_totals": true,
+    "show_bank": true,
+    "show_vat": true,
+    "show_quote_ref": true,
+    "show_po": true,
+    "show_due_date": true,
+    "show_service_date": true,
+    "show_tracking": false,
+    "show_delivery": false,
+    "show_signature": false
   },
   "defaults": {
-    "balance_label": "TOTAL",
-    "vat_mention":   "This is a proforma invoice and is not a VAT invoice.",
-    "terms":         "Payment must be received before shipment."
+    "balance_label": "TOTAL DUE",
+    "vat_mention": "PROFORMA INVOICE - for information only. This is not a tax invoice.",
+    "terms": "PAYMENT IN ADVANCE, by credit card or wire transfer. Goods are shipped after receipt of payment."
   }
 }

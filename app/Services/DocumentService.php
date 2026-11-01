@@ -73,6 +73,12 @@ class DocumentService
     }
 
     /** Everything, in the file format used by Export / Import. */
+    /** All documents with full data — used by DataExporter. */
+    public function allFull(): array
+    {
+        return $this->docs->findAllFull();
+    }
+
     public function exportAll(): array
     {
         $documents = array_map(fn(Document $d) => [

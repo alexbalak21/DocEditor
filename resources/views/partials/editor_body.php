@@ -3,6 +3,8 @@
  * Template-aware split-panel editor.
  * Expects: $editId (int|null), $newType (string), $logoDataUri (string)
  */
+$editId = isset($editId) ? (int)$editId : null;
+$newType = isset($newType) && is_string($newType) ? $newType : 'INVOICE';
 ?>
 <link rel="stylesheet" href="<?= BASE_URL ?>/assets/document.css">
 <style>

@@ -11,6 +11,8 @@ class CustomerService
         private CustomerRepository $repo = new CustomerRepository()
     ) {}
 
+    public function all(): array { return $this->repo->findAll(); }
+
     public function list(string $search = ''): array
     {
         return array_map(fn(Customer $c) => $c->toArray(), $this->repo->findAll($search));

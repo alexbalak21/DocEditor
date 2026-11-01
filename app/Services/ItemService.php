@@ -11,6 +11,8 @@ class ItemService
         private ItemRepository $repo = new ItemRepository()
     ) {}
 
+    public function all(): array { return $this->repo->findAll(); }
+
     public function list(string $search = ''): array
     {
         return array_map(fn(Item $i) => $i->toArray(), $this->repo->findAll($search));

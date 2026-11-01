@@ -268,17 +268,12 @@ $nav = [
       <a href="<?= BASE_URL ?>/profile" class="dropdown-item">
         <i class="fa-solid fa-user-pen"></i> My Profile
       </a>
+      <a href="<?= BASE_URL ?>/settings" class="dropdown-item">
+        <i class="fa-solid fa-gear"></i> Settings
+      </a>
       <a href="<?= BASE_URL ?>/documentation" class="dropdown-item">
         <i class="fa-solid fa-book-open"></i> Documentation
       </a>
-      <a href="<?= BASE_URL ?>/logs" class="dropdown-item">
-        <i class="fa-solid fa-terminal"></i> Logs
-      </a>
-      <a href="<?= BASE_URL ?>/notes" class="dropdown-item">
-        <i class="fa-solid fa-comments"></i> All Notes
-        <span class="dd-badge">Admin</span>
-      </a>
-
       <div class="dropdown-divider"></div>
 
       <button class="dropdown-item" onclick="openNotePanel()">

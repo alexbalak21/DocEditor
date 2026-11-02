@@ -58,13 +58,13 @@ class TwoFactorService
 
         $code    = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
         $hash    = password_hash($code, PASSWORD_DEFAULT);
-        $expires = date('Y-m-d H:i:s', time() + self::lifetimeMinutes() * 60);
+        $lifetime = self::lifetimeMinutes();
 
         $stmt = $this->db->prepare(
             'INSERT INTO two_factor_codes (user_id, code_hash, ip, expires_at)
-             VALUES (?, ?, ?, ?)'
+             VALUES (?, ?, ?, DATE_ADD(NOW(), INTERVAL ' . $lifetime . ' MINUTE))'
         );
-        $stmt->execute([$user->id, $hash, $ip, $expires]);
+        $stmt->execute([$user->id, $hash, $ip]);
         $id = (int) $this->db->lastInsertId();
 
         $this->sendCode($user, $code);

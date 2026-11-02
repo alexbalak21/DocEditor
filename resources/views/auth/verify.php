@@ -75,15 +75,26 @@
 
 <script>
 const codeInput = document.getElementById('code');
+const verifyForm = document.getElementById('verify-form');
+const verifyButton = verifyForm.querySelector('button[type="submit"]');
+let verificationSubmitted = false;
 
 // Format as user types: insert space after 3 digits
 codeInput.addEventListener('input', function() {
   let val = this.value.replace(/\D/g, '').slice(0, 6);
   this.value = val.length > 3 ? val.slice(0,3) + ' ' + val.slice(3) : val;
+
+  if (val.length === 6 && !verificationSubmitted) {
+    verificationSubmitted = true;
+    codeInput.readOnly = true;
+    verifyButton.disabled = true;
+    verifyButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verifying...';
+    verifyForm.requestSubmit();
+  }
 });
 
 // Strip space before submit
-document.getElementById('verify-form').addEventListener('submit', function() {
+verifyForm.addEventListener('submit', function() {
   codeInput.value = codeInput.value.replace(/\s/g, '');
 });
 </script>

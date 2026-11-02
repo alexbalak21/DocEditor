@@ -3,32 +3,26 @@
 namespace App\Core;
 
 /**
- * Mailer — minimal SMTP client (no Composer dependencies).
- *
- * Supports:
- *   - Plain SMTP (port 25/587) with optional STARTTLS
- *   - SMTP over SSL/TLS (port 465, smtps://)
- *   - AUTH LOGIN and AUTH PLAIN
- *   - HTML + plain-text fallback
+ * Mailer — email sender with PHP mail() and direct SMTP transports.
  *
  * Configuration via .env:
+ *   MAIL_DRIVER=mail       (mail | smtp | log)
  *   MAIL_HOST=smtp.example.com
- *   MAIL_PORT=587              (25 | 465 | 587)
- *   MAIL_ENCRYPTION=tls        (tls = STARTTLS | ssl = SSL wrapper | none)
+ *   MAIL_PORT=587
+ *   MAIL_ENCRYPTION=tls   (tls | ssl | none)
  *   MAIL_USERNAME=user@example.com
  *   MAIL_PASSWORD=secret
  *   MAIL_FROM_ADDRESS=noreply@example.com
  *   MAIL_FROM_NAME="DocEditor"
  *
- * For local dev / testing, set MAIL_DRIVER=log to write emails to the log
- * instead of sending them.
+ * For local dev / testing, set MAIL_DRIVER=log to write emails to the log.
  */
 class Mailer
 {
     // ── Send ────────────────────────────────────────────────────
 
     /**
-     * @throws \RuntimeException on connection or SMTP error
+     * @throws \RuntimeException on a mail transport error
      */
     public static function send(
         string $toAddress,
@@ -37,21 +31,61 @@ class Mailer
         string $html,
         string $plain = '',
     ): void {
-        if (Env::get('MAIL_DRIVER', 'smtp') === 'log') {
+        $driver = strtolower((string) Env::get('MAIL_DRIVER', 'mail'));
+        if ($driver === 'log') {
             self::logMail($toAddress, $subject, $plain ?: strip_tags($html));
             return;
         }
 
-        $host       = Env::get('MAIL_HOST',         'localhost');
-        $port       = (int) Env::get('MAIL_PORT',   '587');
-        $enc        = strtolower(Env::get('MAIL_ENCRYPTION', 'tls'));  // tls | ssl | none
-        $user       = Env::get('MAIL_USERNAME',      '');
-        $pass       = Env::get('MAIL_PASSWORD',      '');
-        $fromAddr   = Env::get('MAIL_FROM_ADDRESS',  $user);
+        $fromAddr   = Env::get('MAIL_FROM_ADDRESS', '');
         $fromName   = Env::get('MAIL_FROM_NAME',     Env::get('APP_NAME', 'DocEditor'));
+        if ($fromAddr === '') {
+            throw new \RuntimeException('MAIL_FROM_ADDRESS must be configured.');
+        }
 
-        // Open socket
-        $transport = ($enc === 'ssl') ? "ssl://{$host}" : $host;
+        if ($driver === 'smtp') {
+            self::sendSmtp($toAddress, $toName, $subject, $html, $plain, $fromAddr, $fromName);
+            return;
+        }
+
+        if ($driver !== 'mail') {
+            throw new \RuntimeException("Unsupported mail driver: {$driver}");
+        }
+
+        $boundary = '==Multipart_' . bin2hex(random_bytes(8));
+        $headers = implode("\r\n", [
+            "From: " . self::encodeHeader($fromName) . " <{$fromAddr}>",
+            "To: "   . self::encodeHeader($toName)   . " <{$toAddress}>",
+            "Subject: " . self::encodeHeader($subject),
+            "Date: " . date('r'),
+            "MIME-Version: 1.0",
+            "Content-Type: multipart/alternative; boundary=\"{$boundary}\"",
+            "X-Mailer: DocEditor/1.0",
+        ]);
+        $message = self::buildBody($boundary, $html, $plain);
+        if (!mail($toAddress, self::encodeHeader($subject), $message, $headers)) {
+            throw new \RuntimeException('PHP mail() failed to queue the message.');
+        }
+
+        Logger::info('mail.sent', ['to' => $toAddress, 'subject' => $subject]);
+    }
+
+    private static function sendSmtp(
+        string $toAddress,
+        string $toName,
+        string $subject,
+        string $html,
+        string $plain,
+        string $fromAddr,
+        string $fromName,
+    ): void {
+        $host = (string) Env::get('MAIL_HOST', 'localhost');
+        $port = (int) Env::get('MAIL_PORT', 587);
+        $enc  = strtolower((string) Env::get('MAIL_ENCRYPTION', 'tls'));
+        $user = (string) Env::get('MAIL_USERNAME', '');
+        $pass = (string) Env::get('MAIL_PASSWORD', '');
+
+        $transport = $enc === 'ssl' ? "ssl://{$host}" : $host;
         $socket = @fsockopen($transport, $port, $errno, $errstr, 10);
         if (!$socket) {
             throw new \RuntimeException("SMTP connect failed [{$errno}]: {$errstr}");
@@ -60,30 +94,26 @@ class Mailer
 
         try {
             self::expect($socket, 220);
-            self::cmd($socket, "EHLO " . (gethostname() ?: 'localhost'), 250);
-
+            self::cmd($socket, 'EHLO ' . (gethostname() ?: 'localhost'), 250);
             if ($enc === 'tls') {
                 self::cmd($socket, 'STARTTLS', 220);
                 if (!stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
                     throw new \RuntimeException('STARTTLS negotiation failed.');
                 }
-                self::cmd($socket, "EHLO " . (gethostname() ?: 'localhost'), 250);
+                self::cmd($socket, 'EHLO ' . (gethostname() ?: 'localhost'), 250);
             }
-
             if ($user !== '' && $pass !== '') {
                 self::cmd($socket, 'AUTH LOGIN', 334);
                 self::cmd($socket, base64_encode($user), 334);
                 self::cmd($socket, base64_encode($pass), 235);
             }
-
             self::cmd($socket, "MAIL FROM:<{$fromAddr}>", 250);
-            self::cmd($socket, "RCPT TO:<{$toAddress}>",  250);
+            self::cmd($socket, "RCPT TO:<{$toAddress}>", 250);
             self::cmd($socket, 'DATA', 354);
-
-            $message = self::buildMessage($fromAddr, $fromName, $toAddress, $toName, $subject, $html, $plain);
-            fwrite($socket, $message . "\r\n.\r\n");
+            fwrite($socket, self::buildMessage(
+                $fromAddr, $fromName, $toAddress, $toName, $subject, $html, $plain
+            ) . "\r\n.\r\n");
             self::expect($socket, 250);
-
             self::cmd($socket, 'QUIT', 221);
         } finally {
             fclose($socket);
@@ -92,50 +122,35 @@ class Mailer
         Logger::info('mail.sent', ['to' => $toAddress, 'subject' => $subject]);
     }
 
-    // ── SMTP helpers ────────────────────────────────────────────
-
-    private static function cmd($socket, string $cmd, int $expectedCode): string
+    private static function cmd($socket, string $command, int $expectedCode): string
     {
-        fwrite($socket, $cmd . "\r\n");
+        fwrite($socket, $command . "\r\n");
         return self::expect($socket, $expectedCode);
     }
 
-    private static function expect($socket, int $code): string
+    private static function expect($socket, int $expectedCode): string
     {
         $response = '';
         while ($line = fgets($socket, 512)) {
             $response .= $line;
-            // Multi-line responses: "250-..." continues, "250 ..." ends
-            if (strlen($line) >= 4 && $line[3] === ' ') break;
+            if (strlen($line) >= 4 && $line[3] === ' ') {
+                break;
+            }
         }
-        $actual = (int) substr($response, 0, 3);
-        if ($actual !== $code) {
-            throw new \RuntimeException("SMTP expected {$code}, got {$actual}: " . trim($response));
+        $actualCode = (int) substr($response, 0, 3);
+        if ($actualCode !== $expectedCode) {
+            throw new \RuntimeException(
+                "SMTP expected {$expectedCode}, got {$actualCode}: " . trim($response)
+            );
         }
         return $response;
     }
 
     // ── Message builder ─────────────────────────────────────────
 
-    private static function buildMessage(
-        string $fromAddr, string $fromName,
-        string $toAddr,   string $toName,
-        string $subject,  string $html, string $plain,
+    private static function buildBody(
+        string $boundary, string $html, string $plain,
     ): string {
-        $boundary = '==Multipart_' . bin2hex(random_bytes(8));
-        $id       = '<' . bin2hex(random_bytes(8)) . '@doceditor>';
-
-        $headers  = implode("\r\n", [
-            "From: " . self::encodeHeader($fromName) . " <{$fromAddr}>",
-            "To: "   . self::encodeHeader($toName)   . " <{$toAddr}>",
-            "Subject: " . self::encodeHeader($subject),
-            "Message-ID: {$id}",
-            "Date: " . date('r'),
-            "MIME-Version: 1.0",
-            "Content-Type: multipart/alternative; boundary=\"{$boundary}\"",
-            "X-Mailer: DocEditor/1.0",
-        ]);
-
         $body = implode("\r\n", [
             "--{$boundary}",
             "Content-Type: text/plain; charset=UTF-8",
@@ -152,7 +167,30 @@ class Mailer
             "--{$boundary}--",
         ]);
 
-        return $headers . "\r\n\r\n" . $body;
+        return $body;
+    }
+
+    private static function buildMessage(
+        string $fromAddr,
+        string $fromName,
+        string $toAddr,
+        string $toName,
+        string $subject,
+        string $html,
+        string $plain,
+    ): string {
+        $boundary = '==Multipart_' . bin2hex(random_bytes(8));
+        $headers = implode("\r\n", [
+            "From: " . self::encodeHeader($fromName) . " <{$fromAddr}>",
+            "To: " . self::encodeHeader($toName) . " <{$toAddr}>",
+            "Subject: " . self::encodeHeader($subject),
+            "Message-ID: <" . bin2hex(random_bytes(8)) . "@doceditor>",
+            "Date: " . date('r'),
+            "MIME-Version: 1.0",
+            "Content-Type: multipart/alternative; boundary=\"{$boundary}\"",
+            "X-Mailer: DocEditor/1.0",
+        ]);
+        return $headers . "\r\n\r\n" . self::buildBody($boundary, $html, $plain);
     }
 
     private static function encodeHeader(string $value): string

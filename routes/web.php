@@ -16,9 +16,12 @@ use App\Controllers\Api\ItemApiController;
 /**
  * Authentication — everything else requires a logged-in user (see Router::guard)
  */
-$router->get('/login',   [AuthController::class, 'showLogin'], ['public' => true]);
-$router->post('/login',  [AuthController::class, 'login'],     ['public' => true]);
-$router->post('/logout', [AuthController::class, 'logout'],    ['public' => true, 'csrf' => false]);
+$router->get('/login',          [AuthController::class, 'showLogin'],  ['public' => true]);
+$router->post('/login',         [AuthController::class, 'login'],      ['public' => true]);
+$router->get('/login/verify',   [AuthController::class, 'showVerify'], ['public' => true]);
+$router->post('/login/verify',  [AuthController::class, 'verify'],     ['public' => true]);
+$router->post('/login/resend',  [AuthController::class, 'resendCode'], ['public' => true]);
+$router->post('/logout',        [AuthController::class, 'logout'],     ['public' => true, 'csrf' => false]);
 
 $router->get('/profile',           [ProfileController::class, 'show']);
 $router->post('/profile',          [ProfileController::class, 'update']);

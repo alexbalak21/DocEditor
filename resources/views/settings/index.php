@@ -188,6 +188,106 @@ if (!isset($logFiles) || !is_array($logFiles)) {
   <!-- ── Tab: Data ───────────────────────────────────────────── -->
   <div class="tab-pane active" id="tab-data">
 
+    <!-- Section divider style -->
+    <style>
+      .data-section-title {
+        font-size: 11px; font-weight: 700; letter-spacing: .8px;
+        text-transform: uppercase; color: var(--ui-text-muted);
+        margin: 22px 0 10px; display: flex; align-items: center; gap: 8px;
+      }
+      .data-section-title::after {
+        content: ''; flex: 1; height: 1px; background: var(--ui-border);
+      }
+      .category-card {
+        background: white; border: 1px solid var(--ui-border);
+        border-radius: 8px; margin-bottom: 12px; overflow: hidden;
+      }
+      .category-card-head {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 14px 18px; border-bottom: 1px solid var(--ui-border);
+        background: var(--ui-input-bg);
+      }
+      .category-card-head .cc-title {
+        font-size: 14px; font-weight: 700; color: var(--ui-text);
+        display: flex; align-items: center; gap: 8px;
+      }
+      .category-card-head .cc-count {
+        font-size: 12px; color: var(--ui-text-muted); font-weight: 400;
+      }
+      .category-card-body { padding: 14px 18px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+      .category-card-body p { font-size: 13px; color: var(--ui-text-muted); margin: 0; flex: 1; min-width: 200px; line-height: 1.5; }
+      .category-card-actions { display: flex; gap: 8px; flex-shrink: 0; }
+      .cat-import-result { border-top: 1px solid var(--ui-border); padding: 10px 18px; display: none; }
+      .cat-import-result .ir-row { display: flex; justify-content: space-between; font-size: 12.5px; padding: 3px 0; color: var(--ui-text-muted); }
+      .ir-good { color: var(--ui-success); } .ir-bad { color: var(--ui-danger); }
+    </style>
+
+    <!-- ── Per-category ──────────────────────────────────────── -->
+    <div class="data-section-title"><i class="fa-solid fa-layer-group"></i> By category</div>
+
+    <!-- Documents -->
+    <div class="category-card">
+      <div class="category-card-head">
+        <div class="cc-title"><i class="fa-solid fa-file-lines" style="color:var(--ui-primary)"></i> Documents <span class="cc-count"><?= $stats['documents'] ?> records</span></div>
+      </div>
+      <div class="category-card-body">
+        <p>Export all invoices, quotes and other documents. Import from a previously exported file — existing documents are skipped.</p>
+        <div class="category-card-actions">
+          <button class="btn btn-sm" style="background:#eef4ff;color:var(--ui-primary);border:1px solid #c7d9f7" onclick="catExport('documents')">
+            <i class="fa-solid fa-download"></i> Export
+          </button>
+          <label class="btn btn-sm" style="background:#eefaf3;color:var(--ui-success);border:1px solid #b8e6cc;cursor:pointer">
+            <i class="fa-solid fa-upload"></i> Import
+            <input type="file" accept=".json" style="display:none" onchange="catImport(this,'documents','document(s)')">
+          </label>
+        </div>
+      </div>
+      <div class="cat-import-result" id="cat-result-documents"></div>
+    </div>
+
+    <!-- Customers -->
+    <div class="category-card">
+      <div class="category-card-head">
+        <div class="cc-title"><i class="fa-solid fa-users" style="color:#7c3aed"></i> Customers <span class="cc-count"><?= $stats['customers'] ?> records</span></div>
+      </div>
+      <div class="category-card-body">
+        <p>Export the customer address book. Import adds new customers — existing ones (matched by name) are skipped.</p>
+        <div class="category-card-actions">
+          <button class="btn btn-sm" style="background:#f5f0ff;color:#7c3aed;border:1px solid #d4b8f5" onclick="catExport('customers')">
+            <i class="fa-solid fa-download"></i> Export
+          </button>
+          <label class="btn btn-sm" style="background:#eefaf3;color:var(--ui-success);border:1px solid #b8e6cc;cursor:pointer">
+            <i class="fa-solid fa-upload"></i> Import
+            <input type="file" accept=".json" style="display:none" onchange="catImport(this,'customers','customer(s)')">
+          </label>
+        </div>
+      </div>
+      <div class="cat-import-result" id="cat-result-customers"></div>
+    </div>
+
+    <!-- Items -->
+    <div class="category-card">
+      <div class="category-card-head">
+        <div class="cc-title"><i class="fa-solid fa-boxes-stacked" style="color:#d97706"></i> Items <span class="cc-count"><?= $stats['items'] ?> records</span></div>
+      </div>
+      <div class="category-card-body">
+        <p>Export the saved items / product catalogue. Import adds new items — existing ones (matched by name) are skipped.</p>
+        <div class="category-card-actions">
+          <button class="btn btn-sm" style="background:#fffbeb;color:#d97706;border:1px solid #f5d78b" onclick="catExport('items')">
+            <i class="fa-solid fa-download"></i> Export
+          </button>
+          <label class="btn btn-sm" style="background:#eefaf3;color:var(--ui-success);border:1px solid #b8e6cc;cursor:pointer">
+            <i class="fa-solid fa-upload"></i> Import
+            <input type="file" accept=".json" style="display:none" onchange="catImport(this,'items','item(s)')">
+          </label>
+        </div>
+      </div>
+      <div class="cat-import-result" id="cat-result-items"></div>
+    </div>
+
+    <!-- ── Full backup ───────────────────────────────────────── -->
+    <div class="data-section-title"><i class="fa-solid fa-database"></i> Full backup</div>
+
     <!-- Plain export -->
     <div class="settings-card">
       <h2><i class="fa-solid fa-download" style="color:var(--ui-primary)"></i> Export all data</h2>
@@ -197,7 +297,7 @@ if (!isset($logFiles) || !is_array($logFiles)) {
 
     <!-- Encrypted export -->
     <div class="settings-card">
-      <h2><i class="fa-solid fa-lock" style="color:#7c3aed"></i> Export encrypted data</h2>
+      <h2><i class="fa-solid fa-lock" style="color:#7c3aed"></i> Export encrypted backup</h2>
       <p>Same export, but the entire payload is encrypted with a passphrase you choose. Only someone with that passphrase can import it. Uses XSalsa20-Poly1305 (libsodium).</p>
       <div class="card-row">
         <div class="field">
@@ -211,10 +311,10 @@ if (!isset($logFiles) || !is_array($logFiles)) {
       <p class="key-hint"><i class="fa-solid fa-triangle-exclamation" style="color:var(--ui-warning)"></i> Keep your passphrase safe — there is no recovery if you forget it.</p>
     </div>
 
-    <!-- Import -->
+    <!-- Full import -->
     <div class="settings-card">
-      <h2><i class="fa-solid fa-upload" style="color:var(--ui-success)"></i> Import data</h2>
-      <p>Import a previously exported file (plain or encrypted). Existing documents, customers and items are skipped — nothing is overwritten.</p>
+      <h2><i class="fa-solid fa-upload" style="color:var(--ui-success)"></i> Import full backup</h2>
+      <p>Import a full backup file (plain or encrypted). All three categories are restored. Existing records are skipped.</p>
       <div class="card-row" style="margin-bottom:10px">
         <div class="field">
           <label><i class="fa-solid fa-file-code"></i> JSON file (plain or encrypted)</label>
@@ -327,6 +427,66 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'logs' && !logLoaded) loadLogFile(firstLogFile);
   });
 });
+
+// ── Per-category export / import ─────────────────────────────
+const CAT_API = {
+  documents: { export: `${BASE}/api/documents/export`, import: `${BASE}/api/documents/import`, key: 'documents' },
+  customers:  { export: `${BASE}/api/customers`,        import: `${BASE}/api/customers/import`,  key: 'customers'  },
+  items:      { export: `${BASE}/api/items`,            import: `${BASE}/api/items/import`,      key: 'items'      },
+};
+
+async function catExport(cat) {
+  try {
+    toast(`Exporting ${cat}…`);
+    const res  = await fetch(CAT_API[cat].export, {headers:{'X-CSRF-Token':window.__csrf}});
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.error);
+    const rows = json[CAT_API[cat].key] ?? json.documents ?? [];
+    const date = new Date().toISOString().slice(0,10);
+    dlJSON(`doceditor-${cat}-${date}.json`, rows);
+    toast(`Exported ${rows.length} ${cat}`, 'success');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function catImport(input, cat, label) {
+  const file = input.files[0];
+  input.value = '';
+  if (!file) return;
+  let parsed;
+  try { parsed = JSON.parse(await file.text()); }
+  catch { toast('Not a valid JSON file', 'error'); return; }
+
+  // Accept both a bare array and an object with the key
+  const key = CAT_API[cat].key;
+  let rows = Array.isArray(parsed) ? parsed : (parsed[key] ?? null);
+  if (!rows || !rows.length) { toast(`No ${label} found in this file`, 'error'); return; }
+  if (!confirm(`Import ${rows.length} ${label}?\n\nAlready-existing records are skipped.`)) return;
+
+  try {
+    toast(`Importing ${label}…`);
+    const res  = await fetch(CAT_API[cat].import, {
+      method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token':window.__csrf},
+      body: JSON.stringify({[key]: rows}),
+    });
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.error);
+    const r = json;
+    showCatResult(cat, r);
+    toast(`Imported ${r.imported}, skipped ${r.skipped}${r.failed?`, ${r.failed} failed`:''}`, r.failed ? 'error' : 'success');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function showCatResult(cat, r) {
+  const el = document.getElementById(`cat-result-${cat}`);
+  if (!el) return;
+  el.style.display = '';
+  el.innerHTML = `
+    <div class="ir-row"><span>Imported</span><span class="ir-good">${r.imported}</span></div>
+    <div class="ir-row"><span>Skipped (already exist)</span><span>${r.skipped}</span></div>
+    ${r.failed > 0 ? `<div class="ir-row"><span>Failed</span><span class="ir-bad">${r.failed}</span></div>` : ''}
+    ${r.errors?.length ? `<div style="font-size:11.5px;color:var(--ui-danger);margin-top:4px">${r.errors.slice(0,3).map(e=>esc(e)).join('<br>')}</div>` : ''}
+  `;
+}
 
 // ── Export: plain ─────────────────────────────────────────────
 async function doExportPlain() {

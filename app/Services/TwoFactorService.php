@@ -173,51 +173,14 @@ class TwoFactorService
 
     private function sendCode(User $user, string $code): void
     {
-        $appName  = Env::get('APP_NAME', 'DocEditor');
-        $lifetime = self::lifetimeMinutes();
-
-        $formatted = substr($code, 0, 3) . ' ' . substr($code, 3); // "123 456"
-
-        $html = <<<HTML
-<!DOCTYPE html>
-<html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f0f2f5;font-family:'Segoe UI',system-ui,sans-serif">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f2f5;padding:32px 0">
-    <tr><td align="center">
-      <table width="440" cellpadding="0" cellspacing="0" style="background:white;border-radius:10px;box-shadow:0 2px 12px rgba(0,0,0,.1);overflow:hidden;max-width:440px">
-        <tr><td style="background:#3771c8;padding:22px 32px">
-          <p style="margin:0;color:white;font-size:18px;font-weight:700">{$appName}</p>
-        </td></tr>
-        <tr><td style="padding:32px">
-          <p style="margin:0 0 8px;font-size:15px;font-weight:600;color:#1a1d23">Sign-in verification</p>
-          <p style="margin:0 0 24px;font-size:13.5px;color:#5a6070;line-height:1.6">
-            Hi {$user->name}, enter this code to complete your sign-in to {$appName}.
-          </p>
-          <div style="background:#f0f2f5;border-radius:8px;padding:18px;text-align:center;margin-bottom:24px">
-            <p style="margin:0;font-size:36px;font-weight:800;letter-spacing:8px;color:#3771c8;font-family:monospace">{$formatted}</p>
-          </div>
-          <p style="margin:0;font-size:12.5px;color:#9098a8;line-height:1.6">
-            This code expires in <strong>{$lifetime} minutes</strong>.
-            If you did not attempt to sign in, you can safely ignore this email.
-          </p>
-        </td></tr>
-        <tr><td style="padding:16px 32px;border-top:1px solid #e8eaf0">
-          <p style="margin:0;font-size:11.5px;color:#c0c4cc">Sent by {$appName} · Do not share this code.</p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>
-HTML;
-
-        $plain = "Your {$appName} sign-in code is: {$code}\n\nExpires in {$lifetime} minutes. Do not share this code.";
+        $appName = Env::get('APP_NAME', 'DocEditor');
+        $html = '<p>Your sign-in code:</p><p>' . e($code) . '</p>';
+        $plain = "Your sign-in code:\n{$code}";
 
         Mailer::send(
             toAddress: $user->email,
             toName:    $user->name,
-            subject:   "[{$appName}] Your sign-in code: {$formatted}",
+            subject:   "{$appName} code :",
             html:      $html,
             plain:     $plain,
         );

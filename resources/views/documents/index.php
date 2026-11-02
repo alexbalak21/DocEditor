@@ -19,10 +19,6 @@ html,body{height:auto;overflow:auto}
   <div class="history-topbar">
     <h1>Documents</h1>
     <div style="display:flex;gap:8px">
-      <button class="btn btn-secondary btn-sm" id="btn-export">⬇ Export</button>
-      <label class="btn btn-secondary btn-sm" style="cursor:pointer">⬆ Import
-        <input type="file" id="btn-import" accept=".json,application/json" style="display:none">
-      </label>
       <button class="btn btn-primary btn-sm" onclick="openTemplateChooser()"><i class="fa-solid fa-plus"></i> New Document</button>
     </div>
   </div>
@@ -264,18 +260,6 @@ function toast(msg,type=''){
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 document.getElementById('modal-overlay').addEventListener('click',function(e){if(e.target===this)closeModal();});
 
-document.getElementById('btn-export').addEventListener('click', async () => {
-  try {
-    const json = await fetch(`${BASE}/api/documents/export`).then(r => r.json());
-    if (!json.ok) throw new Error(json.error);
-    const {ok, ...payload} = json;
-    bulkDownload('doceditor-documents-' + new Date().toISOString().slice(0, 10) + '.json', payload);
-    toast(`Exported ${payload.count} document(s)`, 'success');
-  } catch (e) { toast('Export failed: ' + e.message, 'error'); }
-});
-document.getElementById('btn-import').addEventListener('change', function () {
-  bulkImport(this, {url: `${BASE}/api/documents/import`, key: 'documents', label: 'document(s)', batch: 25, single: true, done: loadDocs});
-});
 restoreFilters();
 loadDocs();
 </script>

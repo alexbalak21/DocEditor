@@ -8,10 +8,6 @@
       <input type="text" id="search-input" placeholder="Search reference, title, description…" oninput="loadItems()">
     </div>
     <div style="display:flex;gap:8px">
-      <button class="btn btn-secondary btn-sm" id="btn-export"><i class="fa-solid fa-download"></i> Export</button>
-      <label class="btn btn-secondary btn-sm" style="cursor:pointer"><i class="fa-solid fa-upload"></i> Import
-        <input type="file" id="btn-import" accept=".json" style="display:none">
-      </label>
       <button class="btn btn-primary btn-sm" onclick="openForm()"><i class="fa-solid fa-plus"></i> New Item</button>
     </div>
   </div>
@@ -151,22 +147,6 @@ async function doDelete() {
   toast('Deleted','success'); loadItems();
 }
 document.getElementById('modal-overlay').addEventListener('click',function(e){if(e.target===this)closeModal();});
-
-// Export
-document.getElementById('btn-export').addEventListener('click', async () => {
-  const json = await fetch(BASE+'/api/items').then(r=>r.json());
-  if (!json.ok) { toast('Export failed','error'); return; }
-  const clean = json.items.map(({id,created_at,updated_at,...it})=>it);
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([JSON.stringify(clean,null,2)],{type:'application/json'}));
-  a.download='items.json'; a.click();
-  toast(`Exported ${clean.length} item(s)`,'success');
-});
-
-// Import (server-side, skips what already exists)
-document.getElementById('btn-import').addEventListener('change', function () {
-  bulkImport(this, {url: BASE+'/api/items/import', key: 'items', label: 'item(s)', batch: 100, done: loadItems});
-});
 
 function v(id){const el=document.getElementById(id);return el?el.value.trim():'';}
 function set(id,val){const el=document.getElementById(id);if(el)el.value=val??'';}
